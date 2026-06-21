@@ -1,366 +1,427 @@
 # AI CEO: Strategic Intelligence Agent for BMW EV Strategy
 
-## 1. Project Overview
+## Project Overview
 
-This project is an AI-powered Strategic Intelligence Agent designed to support CEO-level decision-making for BMW's electric vehicle strategy.
+This project is an **AI CEO Strategic Intelligence Agent** built for **BMW**.
+The main goal is not only to retrieve information, but to convert public market information into useful CEO-level strategic advice.
 
-The system collects public articles related to BMW, electric vehicles, competitors, battery technology, charging, market risks, and strategic opportunities. It stores the collected information in a structured database, builds a vector search index, retrieves relevant evidence, and generates evidence-based CEO recommendations.
+The system collects public BMW EV-related articles, stores them in a database, processes and chunks the text, creates embeddings, retrieves relevant evidence, and generates strategic insights such as:
 
-The central business question is:
+* Market intelligence
+* Opportunities
+* Risks
+* Sentiment insights
+* Strategic recommendations
+* CEO briefing
 
-**If I were BMW's CEO today, what should I do next in EV strategy and why?**
+The main business question behind this project is:
 
----
-
-## 2. Company and Scope
-
-**Company:** BMW
-**Industry:** Automotive / Electric Vehicles
-**Focus Area:** EV strategy and competitive intelligence
-
-The project focuses on:
-
-* BMW EV strategy
-* Neue Klasse platform
-* iX3 and i3 electric vehicles
-* Battery range and fast charging
-* Premium EV competition
-* China sales and profit pressure
-* Competitors such as Tesla, Mercedes, Audi, BYD, Rivian, Lucid, and Toyota
-* CEO-level strategic recommendations
+> If I were BMW’s CEO today, what should I do next in EV strategy and why?
 
 ---
 
-## 3. Project Requirements Mapping
+## Selected Company
 
-| Requirement                               | Implementation Status                             |
-| ----------------------------------------- | ------------------------------------------------- |
-| Collect at least 100 public documents     | Completed: 121 documents collected                |
-| Use at least 3 independent public sources | Completed: BMWBlog, Electrek, CleanTechnica       |
-| Store collected information               | Completed using SQLite                            |
-| Clean and process text                    | Completed using custom preprocessing scripts      |
-| Generate embeddings                       | Completed using all-MiniLM-L6-v2                  |
-| Build searchable knowledge repository     | Completed using ChromaDB                          |
-| Retrieve evidence using semantic search   | Completed using ChromaDB retriever                |
-| Generate strategic recommendations        | Completed using safe AI CEO recommendation engine |
-| Use free/open-source model                | Completed using Ollama + Qwen2.5:3B               |
-| Build executive dashboard                 | Completed using Streamlit                         |
-| Provide explainable evidence              | Completed using supporting evidence display       |
+| Field      | Value                                            |
+| ---------- | ------------------------------------------------ |
+| Company    | BMW                                              |
+| Industry   | Automotive / Electric Vehicles                   |
+| Focus Area | BMW EV strategy and competitive intelligence     |
+| Main Users | CEO / Strategy team / Management decision-makers |
 
 ---
 
-## 4. System Architecture
+## Data Collection Summary
 
-The system follows a modular AI pipeline:
+The project uses public articles from multiple online sources related to BMW, electric vehicles, batteries, competitors, market risks, and EV strategy.
 
-```text
-Public Sources
-     ↓
-Data Collection
-     ↓
-SQLite Knowledge Database
-     ↓
-Text Cleaning and Deduplication
-     ↓
-Document Chunking
-     ↓
-Embedding Generation
-     ↓
-ChromaDB Vector Store
-     ↓
-Semantic Retriever
-     ↓
-Safe Recommendation Engine
-     ↓
-Local LLM Rewriting
-     ↓
-Streamlit Executive Dashboard
-```
+| Item                | Value                    |
+| ------------------- | ------------------------ |
+| Collected documents | 121 articles             |
+| Public data sources | 3 sources                |
+| Storage             | SQLite database          |
+| Chunking method     | Character-based chunking |
+| Total text chunks   | 628 chunks               |
+| Chunk size          | 1000 characters          |
+| Chunk overlap       | 150 characters           |
 
----
-
-## 5. Data Collection
-
-The project collects articles from three public sources:
-
-1. BMWBlog
-2. Electrek
-3. CleanTechnica
-
-The final dataset contains:
-
-* **121 collected documents**
-* **3 unique publishers**
-* **Full article content**
-* **Average article length around 700 words**
-* **Source type:** full_article_source
-
-The data is collected automatically and stored in the SQLite database.
-
----
-
-## 6. Database Design
-
-The project uses SQLite as the structured storage layer.
-
-Main database file:
+The collected data is stored in:
 
 ```text
 data/ai_ceo.db
 ```
 
-Main tables:
-
-* `documents`
-* `chunks`
-* `recommendations`
-
-The `documents` table stores article-level information such as title, source, category, URL, content, and word count.
-
-The `chunks` table stores smaller text chunks used for retrieval.
-
-The `recommendations` table can be used to store generated CEO recommendations.
-
 ---
 
-## 7. Text Processing Pipeline
+## System Architecture Diagram
 
-The processing pipeline includes:
+```mermaid
+flowchart TD
+    A[Public BMW EV Articles] --> B[Data Collection Scripts]
+    B --> C[SQLite Database]
 
-1. Text cleaning
-2. Duplicate removal
-3. Chunking
-4. Embedding generation
-5. Vector indexing
+    C --> D[Text Cleaning]
+    D --> E[Deduplication]
+    E --> F[Character-Based Chunking]
 
-Chunking configuration:
+    F --> G[Embedding Model]
+    G --> H[ChromaDB Vector Store]
 
-```text
-Chunk size: 500
-Chunk overlap: 80
-Total chunks created: 244
+    I[User / CEO Question] --> J[AI CEO Agent]
+    J --> K[Semantic Retriever]
+    K --> H
+    H --> L[Relevant Evidence Chunks]
+
+    L --> M[Recommendation Engine]
+    M --> N[Risk Detector]
+    M --> O[Opportunity Detector]
+    M --> P[Trend Detector]
+    M --> Q[Sentiment Analyzer]
+
+    N --> R[Strategic Output]
+    O --> R
+    P --> R
+    Q --> R
+
+    R --> S[Local LLM Rewriting]
+    S --> T[Streamlit Dashboard]
 ```
 
-This allows the system to retrieve focused evidence instead of sending full articles directly to the language model.
-
 ---
 
-## 8. Embeddings and Vector Store
+## Data Flow Diagram
 
-The project uses:
-
-```text
-Embedding model: sentence-transformers/all-MiniLM-L6-v2
-Vector database: ChromaDB
-Collection name: bmw_ai_ceo_chunks
+```mermaid
+flowchart LR
+    A[BMWBlog / Electrek / CleanTechnica] --> B[Raw Article Collection]
+    B --> C[SQLite documents table]
+    C --> D[Clean Text]
+    D --> E[Remove Duplicates]
+    E --> F[Split into Text Chunks]
+    F --> G[SQLite chunks table]
+    G --> H[Generate Embeddings]
+    H --> I[ChromaDB Index]
+    I --> J[Semantic Search]
+    J --> K[Retrieved Evidence]
+    K --> L[Risks, Opportunities, Trends]
+    L --> M[Strategic Recommendations]
+    M --> N[CEO Briefing Dashboard]
 ```
 
-The vector store contains 244 embedded chunks.
-When a user asks a question, the system converts the question into an embedding and retrieves the most semantically similar chunks.
+---
+
+## Technology Stack
+
+| Component            | Technology Used                                    |
+| -------------------- | -------------------------------------------------- |
+| Programming language | Python                                             |
+| Dashboard            | Streamlit                                          |
+| Database             | SQLite                                             |
+| Embedding model      | sentence-transformers / all-MiniLM-L6-v2           |
+| Vector database      | ChromaDB                                           |
+| Local LLM            | Ollama with Qwen2.5:3B                             |
+| NLP processing       | Text cleaning, deduplication, chunking, embeddings |
+| Sentiment analysis   | VADER Sentiment                                    |
+| Data handling        | pandas                                             |
+| Version control      | Git and GitHub                                     |
 
 ---
 
-## 9. Retrieval-Augmented Generation
+## AI Pipeline
 
-The system uses Retrieval-Augmented Generation.
-
-The process is:
+The project follows this AI pipeline:
 
 ```text
-User question
-     ↓
-Question embedding
-     ↓
-ChromaDB similarity search
-     ↓
-Top evidence chunks
-     ↓
-Risk, opportunity, trend, and action extraction
-     ↓
-Grounded CEO briefing
+Collect → Store → Clean → Deduplicate → Chunk → Embed → Retrieve → Analyze → Recommend → Display
 ```
 
-The language model does not search the internet directly.
-It only rewrites information supported by retrieved evidence.
+### 1. Data Collection
 
----
+Public articles are collected from selected sources related to BMW and the EV market.
+The collected documents are stored in SQLite so that the project has a structured and repeatable data layer.
 
-## 10. Safe Recommendation Engine
+### 2. Text Cleaning and Deduplication
 
-A major challenge in LLM-based systems is hallucination.
-To reduce hallucination, the project uses a safe recommendation design.
+The raw article text is cleaned to remove unnecessary spaces, noise, and repeated content.
+Duplicates are removed so that the retrieval system does not repeatedly use the same article as evidence.
 
-The system does not allow the LLM to freely invent strategy. Instead:
+### 3. Chunking
+
+The cleaned documents are split into smaller text chunks.
+
+Current configuration:
+
+| Setting       | Value           |
+| ------------- | --------------- |
+| Chunk size    | 1000 characters |
+| Chunk overlap | 150 characters  |
+| Total chunks  | 628             |
+
+Character-based chunking is used because it keeps the chunks small enough for focused retrieval while preserving context through overlap.
+
+### 4. Embedding Generation
+
+Each chunk is converted into a vector embedding using:
 
 ```text
-Retriever finds evidence
-     ↓
-Python rule engine extracts supported risks, opportunities, trends, and actions
-     ↓
-LLM rewrites only supported points
-     ↓
-Unsafe output is checked
-     ↓
-Fallback rule-based briefing is used if needed
+all-MiniLM-L6-v2
 ```
 
-The system includes safeguards against unsupported claims such as:
+These embeddings allow the system to compare the user’s question with stored article chunks using semantic similarity.
 
-* Fake partnerships
-* Treating competitor vehicles as BMW models
-* Unsupported future claims
-* Weak podcast/comment evidence
-* Unsupported strategic actions
+### 5. Vector Store
 
-This improves the reliability of the CEO recommendation.
+The embeddings are stored in ChromaDB.
+ChromaDB is used for semantic retrieval when the user asks a CEO-level question.
 
----
-
-## 11. Local LLM
-
-The project uses:
+The generated vector store folder is:
 
 ```text
-Runtime: Ollama
-Model: Qwen2.5:3B
+chroma_db/
 ```
 
-This satisfies the requirement of using a free/open-source model instead of paid commercial APIs.
+This folder is generated locally and can be rebuilt using the build script.
 
-The LLM is used as a writing assistant, not as the main decision maker.
+### 6. Retrieval
 
----
+When a user asks a question, the system retrieves the most relevant evidence chunks from ChromaDB.
 
-## 12. Strategic Intelligence Engine
-
-The strategic intelligence engine identifies:
-
-### Risks
-
-* China sales and profit pressure
-* Premium EV competitive pressure
-* ICE transition and regulatory pressure
-* Pricing pressure in the EV segment
-
-### Opportunities
-
-* Neue Klasse product momentum
-* iX3 and i3 positioning
-* Battery range and fast charging differentiation
-* Electric M performance positioning
-* Premium electric SUV opportunity
-
-### Trends
-
-* EV adoption and electrification
-* Range and fast charging as important EV factors
-* Premium EV competition
-* China and Europe as important strategic markets
-
----
-
-## 13. Executive Dashboard
-
-The dashboard is built using Streamlit.
-
-Dashboard sections include:
-
-1. Company Overview
-2. Market Intelligence
-3. Opportunity Monitor
-4. Risk Monitor
-5. Sentiment Analysis
-6. Strategic Recommendations
-7. CEO Briefing
-8. Supporting Evidence
-
-The dashboard shows:
-
-* Collected document count
-* Source summaries
-* Category summaries
-* Recent documents
-* AI CEO query input
-* Generated CEO recommendation
-* Risks
-* Opportunities
-* Trends
-* Recommended actions
-* Supporting evidence
-* Sentiment analysis tables and charts
-
----
-
-## 14. Sentiment Analysis
-
-The project uses VADER sentiment analysis as a lightweight sentiment baseline.
-
-The sentiment module analyzes article tone and provides:
-
-* Overall sentiment summary
-* Sentiment by source
-* Sentiment by category
-* Document-level sentiment
-
-Important limitation:
-
-VADER is a lexical sentiment model. Business and EV articles often contain words such as "growth", "strong", "advanced", "range", and "fast charging", which may produce positive scores. Therefore, sentiment is interpreted as article tone, not final strategic risk.
-
----
-
-## 15. Example CEO Question
-
-Example question:
+Example questions:
 
 ```text
 What should BMW do next in EV strategy?
+What are BMW's biggest risks in the electric vehicle market?
+What opportunities does BMW have from Neue Klasse?
+How should BMW respond to Tesla and BYD competition?
 ```
 
-The system returns:
+### 7. Strategic Intelligence Engine
 
-* Executive recommendation
-* Why it matters
-* Key risks
-* Key opportunities
-* Evidence-based action plan
-* Confidence level
+The retrieved evidence is analyzed to identify:
+
+* Risks
+* Opportunities
+* Trends
+* Recommended CEO actions
 * Supporting evidence
+* Confidence level
+
+### 8. Local LLM Rewriting
+
+A local open-source LLM is used through Ollama to rewrite the supported points into a more readable CEO-style response.
+
+The LLM is not used as the only source of truth.
+The final answer is based on retrieved evidence and rule-supported intelligence logic.
+
+### 9. Dashboard
+
+The Streamlit dashboard displays the final results in different sections:
+
+* Company Overview
+* Market Intelligence
+* Opportunity Monitor
+* Risk Monitor
+* Sentiment Analysis
+* Strategic Recommendations
+* CEO Briefing
 
 ---
 
-## 16. How to Run the Project
+## Dashboard Sections
 
-### Step 1: Open project folder
+### 1. Company Overview
 
-```powershell
-cd C:\Users\admin\OneDrive\Desktop\ai_ceo_agent
+This section displays:
+
+* Company name
+* Industry
+* Number of collected documents
+* Number of data sources
+* Last update timestamp
+
+It also shows basic processing information such as text chunks and chunking configuration.
+
+### 2. Market Intelligence
+
+This section shows recent market information, competitor activities, technology trends, and important BMW-related updates.
+
+### 3. Opportunity Monitor
+
+This section identifies possible strategic opportunities for BMW.
+The user can select a sample opportunity query or type a custom question.
+
+### 4. Risk Monitor
+
+This section identifies strategic, financial, operational, and competitive risks.
+The user can select a sample risk query or type a custom question.
+
+### 5. Sentiment Analysis
+
+This section summarizes the sentiment of collected articles using VADER sentiment analysis.
+
+### 6. Strategic Recommendations
+
+This section gives evidence-based recommendations with:
+
+* Recommendation
+* Priority
+* Supporting evidence
+* Expected impact
+* Risk level
+* Risk assessment
+
+### 7. CEO Briefing
+
+This section gives a short executive briefing for management.
+It is intentionally concise so that the CEO can quickly understand the situation, key risks, key opportunities, and next actions.
+
+---
+
+## Design Decisions
+
+### 1. SQLite for structured storage
+
+SQLite was selected because it is simple, lightweight, and suitable for a student prototype.
+It allows the project to store documents, chunks, and recommendation-related data without requiring an external database server.
+
+### 2. ChromaDB for semantic search
+
+ChromaDB was used as the vector store because it works well with embeddings and supports semantic retrieval.
+This is important because CEO questions may not use the exact same words as the collected articles.
+
+### 3. Character-based chunking
+
+The project uses character-based chunking instead of keeping full articles as one document.
+This improves retrieval precision because the system can retrieve only the most relevant part of an article.
+
+### 4. Local open-source LLM
+
+The project uses a local model through Ollama instead of relying on a paid commercial API.
+This matches the project requirement of using freely accessible or open-source models.
+
+### 5. Evidence-based recommendation logic
+
+The system does not simply generate advice from the LLM.
+It first retrieves evidence, detects risks and opportunities, and then generates recommendations based on that evidence.
+
+This makes the output more explainable and reduces hallucination risk.
+
+### 6. Modular code structure
+
+The project is divided into separate folders for:
+
+* data collection
+* data processing
+* storage
+* vector store
+* intelligence engine
+* LLM integration
+* dashboard tabs
+
+This makes the project easier to explain, debug, and extend during live coding.
+
+---
+
+## Project Folder Structure
+
+```text
+ai_ceo_agent/
+│
+├── app.py
+├── README.md
+├── requirements.txt
+│
+├── agents/
+│   └── ceo_agent.py
+│
+├── dashboard/
+│   ├── common.py
+│   └── tabs/
+│       ├── overview_tab.py
+│       ├── market_tab.py
+│       ├── opportunity_tab.py
+│       ├── risk_tab.py
+│       ├── sentiment_tab.py
+│       ├── recommendations_tab.py
+│       └── ceo_briefing_tab.py
+│
+├── data/
+│   ├── ai_ceo.db
+│   └── source_plan.csv
+│
+├── data_collection/
+│   └── collect_final_three_sources.py
+│
+├── data_processing/
+│   ├── clean_text.py
+│   ├── deduplicate.py
+│   ├── chunk_documents.py
+│   └── chunk_documents_char.py
+│
+├── intelligence_engine/
+│   ├── opportunity_detector.py
+│   ├── risk_detector.py
+│   ├── trend_detector.py
+│   ├── sentiment_analyzer.py
+│   └── recommendation_engine.py
+│
+├── llm/
+│   └── ollama_client.py
+│
+├── storage/
+│   └── sqlite_store.py
+│
+├── utils/
+│   └── config.py
+│
+├── vector_store/
+│   ├── build_chroma.py
+│   └── retriever.py
+│
+└── scripts/
+    └── checks/
+        ├── check_chunks.py
+        └── check_database.py
 ```
 
-### Step 2: Activate virtual environment
+---
+
+## How to Run the Project
+
+### 1. Create and activate virtual environment
 
 ```powershell
+python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-### Step 3: Check retriever
+### 2. Install requirements
 
 ```powershell
-python -m vector_store.retriever
+pip install -r requirements.txt
 ```
 
-### Step 4: Test recommendation engine
+### 3. Check the database
 
 ```powershell
-python -m intelligence_engine.recommendation_engine
+python scripts/checks/check_database.py
 ```
 
-### Step 5: Test CEO agent
+### 4. Check chunks
 
 ```powershell
-python -m agents.ceo_agent
+python scripts/checks/check_chunks.py
 ```
 
-### Step 6: Run dashboard
+### 5. Rebuild vector store if needed
+
+If the `chroma_db/` folder is not available, rebuild it using:
+
+```powershell
+python -m vector_store.build_chroma
+```
+
+### 6. Run the dashboard
 
 ```powershell
 streamlit run app.py
@@ -368,53 +429,59 @@ streamlit run app.py
 
 ---
 
-## 17. Important Files
+## Important Note About ChromaDB
 
-```text
-data_collection/collect_final_three_sources.py
-data_processing/clean_text.py
-data_processing/deduplicate.py
-data_processing/chunk_documents.py
-storage/sqlite_store.py
-vector_store/build_chroma.py
-vector_store/retriever.py
-intelligence_engine/recommendation_engine.py
-intelligence_engine/sentiment_analyzer.py
-agents/ceo_agent.py
-llm/ollama_client.py
-app.py
+The `chroma_db/` folder is a generated vector database folder.
+It is not required to push this folder to GitHub because it can be recreated from the stored chunks.
+
+To recreate it:
+
+```powershell
+python -m vector_store.build_chroma
 ```
 
 ---
 
-## 18. Limitations
+## Example CEO Questions
 
-The project has some limitations:
-
-1. The collected data depends on public web article availability.
-2. Some article extraction may include extra webpage text.
-3. VADER sentiment is only a simple lexical baseline.
-4. The local LLM may still over-write some points, so rule-based guardrails are used.
-5. The system provides strategic decision support, not a final business decision.
-6. The system is designed for academic demonstration and should not be treated as real financial advice.
+```text
+What should BMW do next in EV strategy?
+What are BMW's biggest risks in the electric vehicle market?
+What opportunities does BMW have from Neue Klasse?
+How should BMW respond to Tesla and BYD competition?
+What battery and charging trends should BMW focus on?
+```
 
 ---
 
-## 19. Conclusion
+## Current Limitations
 
-This project demonstrates an end-to-end NLP and RAG-based Strategic Intelligence Agent for BMW's EV strategy.
+This is a working academic prototype, so there are some limitations:
 
-It combines:
+* The system uses public articles only.
+* The intelligence depends on the collected dataset.
+* The local LLM is used for rewriting and may not be as strong as large commercial models.
+* The recommendation engine is designed for explainable prototype logic, not full enterprise strategy automation.
+* The vector database needs to be rebuilt if the ChromaDB folder is not included.
 
-* Public data collection
-* Text preprocessing
-* SQLite storage
-* Document chunking
-* Embeddings
-* ChromaDB semantic retrieval
-* Local open-source LLM generation
-* Hallucination-safe recommendation logic
-* Sentiment analysis
-* Streamlit executive dashboard
+---
 
-The final system supports CEO-level strategic decision-making by generating recommendations with retrieved supporting evidence.
+## Future Improvements
+
+Possible improvements include:
+
+* Add more public sources.
+* Add scheduled data collection.
+* Add better source reliability scoring.
+* Add more detailed competitor comparison.
+* Add time-based trend analysis.
+* Improve recommendation ranking using stronger scoring logic.
+* Add downloadable CEO report generation.
+
+---
+
+## Conclusion
+
+This project demonstrates how NLP, retrieval, embeddings, vector databases, and local LLMs can be combined to build a strategic intelligence assistant.
+
+The final system helps transform public BMW EV-related information into evidence-based risks, opportunities, recommendations, and CEO-level briefings.
