@@ -1,0 +1,7 @@
+source_name,source_type,target_company_or_competitor,collection_method,target_count,purpose
+BMW Group PressClub,official_company_source,BMW,web_scraping,35,BMW official EV announcements and strategy updates
+BMW Neue Klasse Page,official_company_source,BMW,web_scraping,10,BMW EV transformation and future vehicle platform context
+Mercedes-Benz Media,competitor_source,Mercedes-Benz,web_scraping,20,Competitor EV announcements and luxury EV strategy
+Audi MediaCenter,competitor_source,Audi,web_scraping,20,Competitor EV product and technology updates
+Tesla Investor Relations,competitor_source,Tesla,web_scraping,15,Tesla strategic and financial announcements
+Google News RSS BMW EV,news_source,BMW/Rivals,RSS,30,External market news about BMW EV strategy and competitors

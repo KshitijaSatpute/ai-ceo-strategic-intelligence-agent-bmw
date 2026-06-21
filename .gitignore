@@ -1,0 +1,41 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Streamlit secrets
+.streamlit/secrets.toml
+
+# Environment variables
+.env
+
+# Backups
+backups/
+*_backup*.py
+*_backup*.md
+
+# ChromaDB generated vector store
+chroma_db/
+chroma_db_backup*/
+chroma_db_backup_before_char_chunking/
+
+# Database backups
+data/*backup*.db
+data/*_backup*.db
+
+# Generated processed text files
+data/processed/
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Logs
+*.log

@@ -1,0 +1,16 @@
+streamlit
+pandas
+numpy
+requests
+beautifulsoup4
+feedparser
+trafilatura
+sentence-transformers
+chromadb
+scikit-learn
+plotly
+transformers
+torch
+vaderSentiment
+python-dotenv
+tqdm
