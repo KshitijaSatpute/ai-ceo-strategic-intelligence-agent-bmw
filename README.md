@@ -63,7 +63,7 @@ The project uses public articles from sources related to BMW, electric vehicles,
 | Public data sources | 3 sources                |
 | Storage             | SQLite database          |
 | Chunking method     | Character-based chunking |
-| Total text chunks   | 628 chunks               |
+| Total text chunks   | 886 chunks               |
 | Chunk size          | 1000 characters          |
 | Chunk overlap       | 150 characters           |
 | Vector database     | ChromaDB                 |
@@ -186,7 +186,7 @@ Current chunking configuration:
 | ------------- | --------------- |
 | Chunk size    | 1000 characters |
 | Chunk overlap | 150 characters  |
-| Total chunks  | 628 chunks      |
+| Total chunks  | 886 chunks      |
 
 Character-based chunking is used because it keeps retrieval focused while overlap preserves context between neighbouring chunks.
 
@@ -664,3 +664,4 @@ Possible future improvements include:
 This project demonstrates how NLP, RAG, embeddings, vector databases, local LLMs, and a Streamlit dashboard can be combined to build a strategic intelligence assistant.
 
 The system converts public BMW EV-related information into risks, opportunities, trends, evidence-based recommendations, and concise CEO briefings for strategic decision support.
+
