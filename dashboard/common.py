@@ -203,11 +203,17 @@ def display_evidence(result):
 
 
 def safe_dataframe(df):
+    df = df.copy()
+
+    for column in df.columns:
+        if df[column].dtype == "object":
+            df[column] = df[column].astype(str)
+
     st.dataframe(
         df,
         width="stretch"
     )
-
+    
 def build_ceo_briefing_summary(result):
     question = result.get("question", "CEO strategy question")
     risks = result.get("risks", [])

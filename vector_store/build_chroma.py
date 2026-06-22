@@ -1,3 +1,5 @@
+###Embedding
+
 import sqlite3
 import chromadb
 from sentence_transformers import SentenceTransformer
@@ -84,7 +86,8 @@ def build_chroma_vector_store():
         show_progress_bar=True,
         normalize_embeddings=True
     )
-
+    print(f"Embedding dimension: {embeddings.shape[1]}") #Embedding dimension size (vectors)
+    
     embeddings = embeddings.tolist()
 
     print(f"Creating ChromaDB at: {CHROMA_DIR}")

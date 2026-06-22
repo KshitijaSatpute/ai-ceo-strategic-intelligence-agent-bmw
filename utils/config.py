@@ -15,6 +15,6 @@ FOCUS_AREA = "EV strategy and competitive intelligence"
 
 EMBEDDING_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 
-CHUNK_SIZE = 500
-CHUNK_OVERLAP = 80
+CHUNK_SIZE = 700
+CHUNK_OVERLAP = 120
 TOP_K = 5

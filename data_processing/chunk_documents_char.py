@@ -6,9 +6,9 @@ import shutil
 from utils.config import DB_PATH
 
 
-CHUNK_SIZE = 1000
-CHUNK_OVERLAP = 150
-MIN_CHUNK_LENGTH = 150
+CHUNK_SIZE = 700
+CHUNK_OVERLAP = 120
+MIN_CHUNK_LENGTH = 200
 
 
 def get_columns(cursor, table_name):
