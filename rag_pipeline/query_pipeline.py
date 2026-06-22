@@ -1,7 +1,7 @@
 from agents.ceo_agent import AICEOAgent
 
 
-def run_query_pipeline(question, top_k=8, use_llm=True):
+def run_query_pipeline(question, top_k=5, use_llm=True):
     """
     Step 2: Run the RAG query pipeline.
 
