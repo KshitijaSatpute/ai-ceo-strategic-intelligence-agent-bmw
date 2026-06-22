@@ -44,7 +44,7 @@ def build_chroma_vector_store():
 
     if not chunks:
         print("No chunks found. Run this first:")
-        print("python -m data_processing.chunk_documents")
+        print("python -m data_processing.chunk_documents_char")
         return
 
     print(f"Chunks loaded: {len(chunks)}")
