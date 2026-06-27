@@ -1,11 +1,13 @@
 from agent.planner import AgentPlanner
 from tools.strategic_tools import StrategicTools
+from agent.memory import AgentMemory
 
 
 class StrategicAgent:
     def __init__(self, top_k=8, use_llm=True):
         self.planner = AgentPlanner()
         self.tools = StrategicTools(top_k=top_k, use_llm=use_llm)
+        self.memory = AgentMemory()
 
     def run(self, question):
         plan = self.planner.create_plan(question)
@@ -14,7 +16,7 @@ class StrategicAgent:
             "goal": question,
             "query_type": plan["query_type"],
             "plan_steps": plan["steps"],
-            "selected_tools": plan["tools"],
+            "selected_tools": plan["tools"].copy(),
             "executed_tools": [],
             "decisions": [],
             "validation": {}
@@ -30,14 +32,40 @@ class StrategicAgent:
             f"Retrieved {len(evidence)} evidence items from ChromaDB."
         )
 
-        risks = self.tools.risk_analysis_tool(evidence)
-        trace["executed_tools"].append("risk_analysis_tool")
+        risks = []
+        opportunities = []
+        trends = []
+
+        if "risk_analysis_tool" in trace["selected_tools"]:
+            risks = self.tools.risk_analysis_tool(evidence)
+            trace["executed_tools"].append("risk_analysis_tool")
+
+        if "opportunity_analysis_tool" not in trace["selected_tools"]:
+            trace["selected_tools"].append("opportunity_analysis_tool")
+            trace["decisions"].append(
+                "Agent added opportunity_analysis_tool because recommendation needs opportunity context."
+            )
 
         opportunities = self.tools.opportunity_analysis_tool(evidence)
         trace["executed_tools"].append("opportunity_analysis_tool")
 
-        trends = self.tools.trend_analysis_tool(evidence)
-        trace["executed_tools"].append("trend_analysis_tool")
+        if "trend_analysis_tool" in trace["selected_tools"]:
+            trends = self.tools.trend_analysis_tool(evidence)
+            trace["executed_tools"].append("trend_analysis_tool")
+
+        if not risks:
+            risks = self.tools.risk_analysis_tool(evidence)
+            trace["executed_tools"].append("risk_analysis_tool")
+            trace["decisions"].append(
+                "Agent added risk_analysis_tool because recommendation needs risk context."
+            )
+
+        if not trends:
+            trends = self.tools.trend_analysis_tool(evidence)
+            trace["executed_tools"].append("trend_analysis_tool")
+            trace["decisions"].append(
+                "Agent added trend_analysis_tool because recommendation needs trend context."
+            )
 
         result = self.tools.recommendation_tool(
             question,
@@ -63,6 +91,14 @@ class StrategicAgent:
 
         result["agent_trace"] = trace
         result["validation"] = validation
+
+        memory_id = self.memory.save_run(result)
+        trace["executed_tools"].append("memory_tool")
+        trace["decisions"].append(
+            f"Agent run saved to memory with ID: {memory_id}"
+        )
+
+        result["agent_trace"] = trace
 
         return result
 
