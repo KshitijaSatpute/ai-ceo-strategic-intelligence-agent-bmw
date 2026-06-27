@@ -1,4 +1,4 @@
-from vector_store.retriever import BMWStrategicRetriever
+from retrieval.semantic_retriever import BMWStrategicRetriever
 from llm.ollama_client import OllamaClient
 
 

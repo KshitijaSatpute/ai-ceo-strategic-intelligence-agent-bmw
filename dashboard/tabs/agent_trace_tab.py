@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-from agent.strategic_agent import StrategicAgent
+from agent.ai_ceo_agent import StrategicAgent
 
 
 def render_agent_trace_tab():

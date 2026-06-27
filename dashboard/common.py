@@ -4,7 +4,7 @@ import pandas as pd
 
 @st.cache_resource
 def load_ai_ceo_agent():
-    from agents.ceo_agent import AICEOAgent
+    from agent.ai_ceo_agent import StrategicAgent as AICEOAgent
 
     agent = AICEOAgent(
         top_k=8,
@@ -15,7 +15,7 @@ def load_ai_ceo_agent():
 
 @st.cache_data
 def load_sentiment_results():
-    from intelligence_engine.sentiment_analyzer import SentimentAnalyzer
+    from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer as SentimentAnalyzer
 
     analyzer = SentimentAnalyzer()
     return analyzer.get_sentiment_summary()
@@ -368,3 +368,4 @@ def build_ceo_briefing_summary(result):
     briefing_lines.append(f"- {confidence}")
 
     return "\n".join(briefing_lines)    
+

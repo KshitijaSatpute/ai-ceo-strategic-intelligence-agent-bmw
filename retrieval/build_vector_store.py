@@ -46,7 +46,7 @@ def build_chroma_vector_store():
 
     if not chunks:
         print("No chunks found. Run this first:")
-        print("python -m data_processing.chunk_documents_char")
+        print("python -m processing.text_pipeline")
         return
 
     print(f"Chunks loaded: {len(chunks)}")
@@ -128,3 +128,4 @@ def build_chroma_vector_store():
 
 if __name__ == "__main__":
     build_chroma_vector_store()
+
