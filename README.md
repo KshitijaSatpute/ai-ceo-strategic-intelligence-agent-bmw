@@ -85,30 +85,19 @@ The dashboard does not scrape websites live each time it opens. It works over th
 ## 5. Final System Architecture
 
 ```mermaid
-```mermaid
 flowchart TD
-    A[Public BMW EV Articles] --> B[Data Collection]
-    B --> C[SQLite Database]
+    A[Public BMW EV Articles] --> B[Data Pipeline]
+    B --> C[Knowledge Base: SQLite + ChromaDB]
 
-    C --> D[Text Cleaning and Chunking]
-    D --> E[Embeddings]
-    E --> F[ChromaDB Knowledge Base]
+    D[CEO Question] --> E[AI CEO Agent]
 
-    G[CEO Question] --> H[AI CEO Agent]
+    E --> F[5 Strategic Tools]
+    F --> C
+    C --> F
 
-    H --> I[Planner]
-    I --> J[5 Strategic Tools]
-
-    J --> K[Search Evidence]
-    K --> F
-    F --> L[Relevant Evidence]
-
-    L --> M[Analyze Risks, Opportunities, Trends and Sentiment]
-    M --> N[Generate CEO Recommendation]
-    N --> O[Validate Answer]
-    O --> P[Save Agent Memory]
-
-    P --> Q[Streamlit Dashboard]
+    F --> G[Validated CEO Recommendation]
+    G --> H[Agent Memory]
+    G --> I[Streamlit Dashboard]
 ```
 
 ---
