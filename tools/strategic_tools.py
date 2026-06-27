@@ -1,9 +1,11 @@
 from intelligence.strategic_analyzer import CEORecommendationEngine
+from agent.validator import AgentValidator
 
 
 class StrategicTools:
     def __init__(self, top_k=8, use_llm=True):
         self.engine = CEORecommendationEngine(top_k=top_k, use_llm=use_llm)
+        self.validator = AgentValidator()
         self.top_k = top_k
         self.use_llm = use_llm
 
@@ -75,30 +77,7 @@ class StrategicTools:
         }
 
     def validation_tool(self, result):
-        validation = {
-            "status": "passed",
-            "checks": [],
-            "warnings": []
-        }
-
-        if not result.get("evidence"):
-            validation["status"] = "failed"
-            validation["warnings"].append("No supporting evidence found.")
-        else:
-            validation["checks"].append("Supporting evidence is available.")
-
-        if result.get("confidence") == "Low":
-            validation["warnings"].append("Confidence is low.")
-        else:
-            validation["checks"].append("Confidence is acceptable.")
-
-        if not result.get("actions"):
-            validation["status"] = "failed"
-            validation["warnings"].append("No recommended actions generated.")
-        else:
-            validation["checks"].append("Recommended actions are available.")
-
-        return validation
+        return self.validator.validate(result)
 
 
 if __name__ == "__main__":
