@@ -1,16 +1,16 @@
-# AI CEO: Strategic Intelligence Agent for BMW EV Strategy
+# AI CEO Strategic Intelligence Agent for BMW EV Strategy
 
 ## 1. Project Overview
 
-This project is an **AI CEO Strategic Intelligence Agent** built for **BMW**.
+This project is an **AI CEO Strategic Intelligence Agent** built for **BMW EV strategy and competitive intelligence**.
 
-The purpose of this project is not only to retrieve information, but to convert public market information into **CEO-level strategic recommendations**. The system collects public BMW EV-related articles, stores them in a database, processes the text, builds a semantic search index, retrieves relevant evidence, and generates strategic insights.
+The goal of this project is to convert public BMW EV-related information into **CEO-level strategic recommendations**. The system collects public articles, stores them in a database, builds a searchable knowledge base, retrieves relevant evidence, analyzes strategic signals, and generates an evidence-based CEO briefing.
 
-The main business question behind this project is:
+The main business question is:
 
 > If I were BMW’s CEO today, what should I do next in EV strategy and why?
 
-The system focuses on:
+The project focuses on:
 
 * BMW EV strategy
 * Neue Klasse platform
@@ -18,167 +18,134 @@ The system focuses on:
 * Battery range and charging trends
 * EV competition from Tesla, BYD, and other automakers
 * China sales and profit pressure
-* Strategic risks, opportunities, trends, and CEO actions
+* Strategic risks, opportunities, trends, sentiment, and CEO actions
 
 ---
 
 ## 2. Selected Company and Scope
 
-| Field      | Value                                           |
-| ---------- | ----------------------------------------------- |
-| Company    | BMW                                             |
-| Industry   | Automotive / Electric Vehicles                  |
-| Focus Area | BMW EV strategy and competitive intelligence    |
-| Main User  | CEO / Strategy team / Management decision-maker |
+| Field       | Value                                           |
+| ----------- | ----------------------------------------------- |
+| Company     | BMW                                             |
+| Industry    | Automotive / Electric Vehicles                  |
+| Focus Area  | BMW EV strategy and competitive intelligence    |
+| Main User   | CEO / Strategy team / Management decision-maker |
+| Main Output | Evidence-based CEO recommendation and briefing  |
 
 ---
 
 ## 3. Project Requirements Mapping
 
-| Requirement                                   | Current Implementation                                                    |
-| --------------------------------------------- | ------------------------------------------------------------------------- |
-| Select one public company                     | BMW                                                                       |
-| Collect at least 100 documents/articles/posts | 121 collected articles                                                    |
-| Use at least 3 public sources                 | BMWBlog, Electrek, CleanTechnica                                          |
-| Automatic collection process                  | Script-based public article collection                                    |
-| Store collected information                   | SQLite database                                                           |
-| Clean and process text                        | Custom cleaning and deduplication scripts                                 |
-| Generate embeddings                           | all-MiniLM-L6-v2                                                          |
-| Build searchable repository                   | ChromaDB vector store                                                     |
-| Retrieval mechanism                           | RAG / semantic search                                                     |
-| Strategic intelligence engine                 | Risk, opportunity, trend, sentiment, and recommendation modules           |
-| Open-source/freely accessible model           | Ollama with Qwen2.5:3B                                                    |
-| Dashboard                                     | Streamlit executive dashboard                                             |
-| Architecture documentation                    | README with diagrams, technology stack, design decisions, and AI pipeline |
+| Requirement                                   | Current Implementation                               |
+| --------------------------------------------- | ---------------------------------------------------- |
+| Select one public company                     | BMW                                                  |
+| Collect at least 100 documents/articles/posts | 121 collected articles                               |
+| Use at least 3 public sources                 | BMWBlog, Electrek, CleanTechnica                     |
+| Automatic data collection                     | Script-based public article collection               |
+| Store collected information                   | SQLite database                                      |
+| Clean and process text                        | Text cleaning, deduplication, and chunking           |
+| Create searchable knowledge repository        | SQLite + ChromaDB                                    |
+| Generate embeddings                           | all-MiniLM-L6-v2                                     |
+| Retrieval mechanism                           | Semantic search / RAG                                |
+| AI CEO Agent                                  | One main AI CEO Agent                                |
+| Agent planning                                | `agent/planner.py`                                   |
+| Agent tools                                   | 5 strategic tools                                    |
+| Agent validation                              | `agent/validator.py`                                 |
+| Agent memory                                  | `agent/memory.py` with SQLite                        |
+| Dashboard                                     | Streamlit executive dashboard                        |
+| Open-source / freely accessible model         | Ollama with Qwen2.5:3B, optional for final rewriting |
 
 ---
 
-## 4. Data Collection Summary
+## 4. Dataset Summary
 
-The project uses public articles from sources related to BMW, electric vehicles, competitors, market risks, EV charging, batteries, and strategic opportunities.
+The project uses public articles related to BMW, electric vehicles, competitors, battery technology, charging, market risks, and strategic opportunities.
 
-| Item                | Value                    |
-| ------------------- | ------------------------ |
-| Collected documents | 121 articles             |
-| Public data sources | 3 sources                |
-| Storage             | SQLite database          |
-| Chunking method     | Character-based chunking |
-| Total text chunks   | 886 chunks               |
-| Chunk size          | 1000 characters          |
-| Chunk overlap       | 150 characters           |
-| Vector database     | ChromaDB                 |
+| Item                | Value                            |
+| ------------------- | -------------------------------- |
+| Collected documents | 121 articles                     |
+| Public sources      | 3 sources                        |
+| Sources             | BMWBlog, Electrek, CleanTechnica |
+| Storage             | SQLite database                  |
+| Total text chunks   | 886 chunks                       |
+| Chunk size          | 1000 characters                  |
+| Chunk overlap       | 150 characters                   |
+| Vector database     | ChromaDB                         |
+| Embedding model     | all-MiniLM-L6-v2                 |
 
-The main database file is:
+Main database file:
 
 ```text
 data/ai_ceo.db
 ```
 
-The data collection is script-based and rerunnable. The dashboard does not scrape websites live every time it opens. Instead, it performs dynamic RAG-based analysis over the stored and indexed knowledge base.
+The dashboard does not scrape websites live every time it opens. It works over the stored and indexed knowledge base.
 
 ---
 
-## 5. System Architecture Diagram
+## 5. Simple System Architecture
 
 ```mermaid
 flowchart TD
-    A[Public BMW EV Articles] --> B[Data Collection Script]
-    B --> C[SQLite Database]
+    A[Public BMW EV Articles] --> B[Data Pipeline]
+    B --> C[Knowledge Base: SQLite + ChromaDB]
 
-    C --> D[Text Cleaning]
-    D --> E[Deduplication]
-    E --> F[Character-Based Chunking]
+    D[CEO Question] --> E[AI CEO Agent]
 
-    F --> G[Embedding Model: all-MiniLM-L6-v2]
-    G --> H[ChromaDB Vector Store]
+    E --> F[5 Strategic Tools]
+    F --> C
+    C --> F
 
-    I[User / CEO Question] --> J[AI CEO Agent]
-    J --> K[Semantic Retriever]
-    K --> H
-    H --> L[Relevant Evidence Chunks]
-
-    L --> M[Intelligence Engine]
-    M --> N[Risk Detector]
-    M --> O[Opportunity Detector]
-    M --> P[Trend Detector]
-    M --> Q[Sentiment Analyzer]
-    M --> R[Recommendation Engine]
-
-    N --> S[Strategic Intelligence Output]
-    O --> S
-    P --> S
-    Q --> S
-    R --> S
-
-    S --> T[Local LLM Rewriting]
-    T --> U[Streamlit Dashboard]
+    F --> G[Validated CEO Recommendation]
+    G --> H[Agent Memory]
+    G --> I[Streamlit Dashboard]
 ```
 
----
+### Architecture Explanation
 
-## 6. Data Flow Diagram
+The architecture is kept simple and explainable.
 
-```mermaid
-flowchart LR
-    A[BMWBlog / Electrek / CleanTechnica] --> B[Article Collection]
-    B --> C[SQLite documents table]
-    C --> D[Cleaned Text]
-    D --> E[Deduplicated Documents]
-    E --> F[Character-Based Chunks]
-    F --> G[SQLite chunks table]
-    G --> H[Embeddings]
-    H --> I[ChromaDB Index]
-    I --> J[Semantic Search]
-    J --> K[Retrieved Evidence]
-    K --> L[Risk / Opportunity / Trend Detection]
-    L --> M[Strategic Recommendations]
-    M --> N[CEO Briefing]
-    N --> O[Streamlit Dashboard]
-```
+Public BMW EV-related articles are collected and processed through a data pipeline. The processed documents are stored in SQLite, while embeddings are stored in ChromaDB for semantic retrieval.
+
+When a CEO question is asked, the AI CEO Agent creates a plan, selects the required strategic tools, retrieves evidence from the knowledge base, analyzes risks, opportunities, trends and sentiment, generates a CEO-level recommendation, validates the answer, saves the run in memory, and displays the result in the Streamlit dashboard.
 
 ---
 
-## 7. Technology Stack
+## 6. Main Pipeline
 
-| Component                               | Technology Used                                  |
-| --------------------------------------- | ------------------------------------------------ |
-| Programming language                    | Python                                           |
-| Dashboard                               | Streamlit                                        |
-| Database                                | SQLite                                           |
-| Embedding model                         | sentence-transformers / all-MiniLM-L6-v2         |
-| Vector database                         | ChromaDB                                         |
-| Local LLM                               | Ollama with Qwen2.5:3B                           |
-| Retrieval method                        | RAG / semantic search                            |
-| Sentiment analysis                      | VADER Sentiment                                  |
-| Data handling                           | pandas                                           |
-| Article extraction / collection support | requests, BeautifulSoup, feedparser, trafilatura |
-| Version control                         | Git and GitHub                                   |
-
----
-
-## 8. AI Pipeline
-
-The project follows this AI pipeline:
+The final pipeline is:
 
 ```text
-Collect → Store → Clean → Deduplicate → Chunk → Embed → Retrieve → Analyze → Recommend → Display
+Collect Data → Store → Clean → Chunk → Embed → Retrieve → Analyze → Recommend → Validate → Save Memory → Display
 ```
 
-### 8.1 Data Collection
+### 6.1 Data Collection
 
-Public BMW EV-related articles are collected from selected public sources. The collected information is stored in SQLite so that the system has a repeatable data layer.
+Public BMW EV-related articles are collected from selected public sources.
 
-### 8.2 Text Cleaning
+Sources used:
 
-The raw article content is cleaned to remove extra spaces, unnecessary formatting, and noisy text.
+```text
+BMWBlog
+Electrek
+CleanTechnica
+```
 
-### 8.3 Deduplication
+### 6.2 Storage
 
-Duplicate or repeated articles are removed so that the same source is not repeatedly used as evidence.
+Collected articles and processed chunks are stored in SQLite.
 
-### 8.4 Chunking
+```text
+data/ai_ceo.db
+```
 
-The cleaned documents are split into smaller text chunks.
+### 6.3 Text Processing
+
+The text processing step includes:
+
+* cleaning noisy text
+* removing duplicate content
+* splitting documents into chunks
 
 Current chunking configuration:
 
@@ -188,9 +155,7 @@ Current chunking configuration:
 | Chunk overlap | 150 characters  |
 | Total chunks  | 886 chunks      |
 
-Character-based chunking is used because it keeps retrieval focused while overlap preserves context between neighbouring chunks.
-
-### 8.5 Embedding Generation
+### 6.4 Embeddings
 
 Each chunk is converted into a vector embedding using:
 
@@ -198,283 +163,159 @@ Each chunk is converted into a vector embedding using:
 all-MiniLM-L6-v2
 ```
 
-This allows semantic comparison between a user question and stored article chunks.
+This allows semantic search. The system can retrieve relevant chunks even if the user question does not use the exact same words as the article.
 
-### 8.6 Vector Storage
+### 6.5 Vector Store
 
-The embeddings are stored in ChromaDB. ChromaDB is used to retrieve the most relevant evidence chunks for a CEO-level question.
+The embeddings are stored in ChromaDB.
 
-### 8.7 Retrieval
+ChromaDB is used as the searchable vector knowledge base.
 
-When the user asks a question, the system retrieves top relevant chunks from ChromaDB using semantic similarity.
+### 6.6 Retrieval
 
-Example questions:
+When a CEO question is asked, the system retrieves the most relevant evidence chunks from ChromaDB.
 
-```text
-What should BMW do next in EV strategy?
-What are BMW's biggest risks in the electric vehicle market?
-What opportunities does BMW have from Neue Klasse?
-How should BMW respond to Tesla and BYD competition?
-What battery and charging trends should BMW focus on?
-```
+### 6.7 Agentic Reasoning
 
-### 8.8 Strategic Intelligence Analysis
+The AI CEO Agent uses retrieved evidence, strategic tools, validation, and memory to produce an evidence-based recommendation.
 
-The retrieved evidence is passed to the intelligence engine. The intelligence engine identifies:
+### 6.8 Dashboard
 
-* Risks
-* Opportunities
-* Trends
-* Sentiment
-* Recommended actions
-* Supporting evidence
-* Confidence level
-
-### 8.9 Local LLM Rewriting
-
-A local open-source LLM through Ollama is used to rewrite supported points into a more readable CEO-style response.
-
-The LLM is not used as the only source of truth. The final output is based on retrieved evidence and rule-supported intelligence logic.
-
-### 8.10 Dashboard Display
-
-The final output is displayed in the Streamlit executive dashboard.
+The final output is shown in the Streamlit dashboard.
 
 ---
 
-## 9. RAG Pipeline
+## 7. AI CEO Agent Design
 
-The project uses Retrieval-Augmented Generation.
+The project uses **one main AI CEO Agent**.
 
-The main RAG logic is implemented across these modules:
+This design was chosen to keep the system simple, explainable, and suitable for an academic prototype.
 
-```text
-vector_store/build_chroma.py
-vector_store/retriever.py
-agents/ceo_agent.py
-intelligence_engine/recommendation_engine.py
-```
-
-A separate `rag_pipeline/` folder is also included as a step-wise wrapper for demo, testing, and live coding. It does not replace the existing working logic. It makes the RAG process easier to explain.
-
-### RAG Flow
+Main agent file:
 
 ```text
-SQLite chunks
-    ↓
-Embedding generation
-    ↓
-ChromaDB vector store
-    ↓
-User CEO question
-    ↓
-Semantic retrieval
-    ↓
-Top-K evidence chunks
-    ↓
-AI CEO Agent
-    ↓
-Strategic intelligence engine
-    ↓
-CEO recommendation / briefing
+agent/ai_ceo_agent.py
 ```
 
-### RAG Pipeline Folder
+The AI CEO Agent performs the following steps:
 
-```text
-rag_pipeline/
-├── __init__.py
-├── indexing_pipeline.py
-├── query_pipeline.py
-├── rag_orchestrator.py
-└── README.md
-```
-
-### RAG Pipeline Commands
-
-Rebuild or run indexing wrapper:
-
-```powershell
-python -m rag_pipeline.indexing_pipeline
-```
-
-Test query pipeline:
-
-```powershell
-python -m rag_pipeline.query_pipeline
-```
-
-Run full RAG demo:
-
-```powershell
-python -m rag_pipeline.rag_orchestrator
-```
+1. Receives the CEO question.
+2. Creates a plan.
+3. Selects the required tools.
+4. Retrieves relevant evidence.
+5. Analyzes risks, opportunities, trends, and sentiment.
+6. Generates a CEO-level recommendation.
+7. Validates the recommendation.
+8. Saves the run in memory.
+9. Returns the final CEO briefing.
+10. Shows the full trace in the dashboard.
 
 ---
 
-## 10. Intelligence Engine
+## 8. Why This Is an Agent
 
-The intelligence engine converts retrieved evidence into strategic insights.
+The previous version of the project was mainly a RAG pipeline. The improved version adds explicit agentic behavior.
+
+| Agentic Feature      | Implementation                      |
+| -------------------- | ----------------------------------- |
+| Goal understanding   | User CEO question                   |
+| Planning             | `agent/planner.py`                  |
+| Tool selection       | Selected tools shown in Agent Trace |
+| Tool execution       | Executed tools shown in Agent Trace |
+| Decision trace       | Agent decisions shown in dashboard  |
+| Evidence retrieval   | ChromaDB semantic search            |
+| Strategic analysis   | `analysis_tool`                     |
+| Validation           | `agent/validator.py`                |
+| Memory               | `agent/memory.py`                   |
+| Multi-step execution | `agent/ai_ceo_agent.py`             |
+| Dashboard proof      | `dashboard/tabs/agent_trace_tab.py` |
+
+This is not only RAG because the system does more than retrieve and answer. It plans, selects tools, executes tools, validates the output, saves memory, and shows the full agent trace.
+
+---
+
+## 9. Agent Tools
+
+The AI CEO Agent uses **5 strategic tools**.
+
+Tool file:
 
 ```text
-intelligence_engine/
-├── risk_detector.py
-├── opportunity_detector.py
-├── trend_detector.py
-├── sentiment_analyzer.py
-└── recommendation_engine.py
+tools/strategic_tools.py
 ```
 
-### 10.1 Risk Detector
+| Tool                   | Purpose                                         |
+| ---------------------- | ----------------------------------------------- |
+| `search_evidence_tool` | Retrieves relevant evidence from ChromaDB       |
+| `analysis_tool`        | Extracts risks, opportunities, and trends       |
+| `sentiment_tool`       | Calculates evidence sentiment using VADER       |
+| `recommendation_tool`  | Generates CEO-level strategic recommendation    |
+| `validation_tool`      | Checks whether the output is evidence-supported |
 
-`risk_detector.py` identifies risk signals such as:
+Memory is handled separately by:
 
-* China sales and profit pressure
-* Competitive pressure from Tesla, BYD, and other EV rivals
-* Battery and charging execution risk
-* EV transition risk
-* Regulatory and policy risk
+```text
+agent/memory.py
+```
 
-### 10.2 Opportunity Detector
+Memory stores the agent run in SQLite, including the question, query type, selected tools, executed tools, validation status, confidence, and final briefing.
 
-`opportunity_detector.py` identifies opportunity signals such as:
+---
 
-* Neue Klasse EV momentum
-* Range and charging as differentiators
-* Premium performance EV positioning
-* Smart charging and energy services
-* Market share growth from EV demand
+## 10. Knowledge Base
 
-### 10.3 Trend Detector
+The knowledge base has two parts:
 
-`trend_detector.py` identifies high-level trends such as:
+| Component | Role                                                          |
+| --------- | ------------------------------------------------------------- |
+| SQLite    | Stores collected articles, chunks, metadata, and agent memory |
+| ChromaDB  | Stores embeddings and supports semantic retrieval             |
 
-* EV adoption and market demand
-* Charging infrastructure importance
-* Battery and range competition
-* Stronger EV competition
-* Regional policy and market pressure
-* BMW EV platform development
-
-### 10.4 Sentiment Analyzer
-
-`sentiment_analyzer.py` uses VADER sentiment analysis to understand the tone of collected articles.
-
-### 10.5 Recommendation Engine
-
-`recommendation_engine.py` combines retrieved evidence, detected risks, opportunities, trends, and actions into CEO-level strategic recommendations.
+This combination allows the system to store structured data and also perform semantic search.
 
 ---
 
 ## 11. Dashboard Sections
 
-The Streamlit dashboard contains seven main sections.
+The Streamlit dashboard contains 8 sections.
 
-### 11.1 Company Overview
+| Tab                 | Purpose                                                                                |
+| ------------------- | -------------------------------------------------------------------------------------- |
+| Overview            | Shows project statistics and source summary                                            |
+| Market Intelligence | Shows BMW EV-related market information                                                |
+| Opportunities       | Shows strategic opportunities                                                          |
+| Risk Monitor        | Shows strategic risks                                                                  |
+| Sentiment           | Shows article-level sentiment analysis                                                 |
+| Recommendations     | Shows strategic recommendations                                                        |
+| CEO Briefing        | Shows concise executive briefing                                                       |
+| Agent Trace         | Shows planning, tool selection, execution, decisions, validation, memory, and evidence |
 
-Displays:
+The most important tab for explaining the agent is:
 
-* Company name
-* Industry
-* Number of collected documents
-* Number of data sources
-* Last update timestamp
+```text
+Agent Trace
+```
 
-### 11.2 Market Intelligence
-
-Displays:
-
-* Recent news
-* Competitor activities
-* Emerging technologies
-* Important BMW-related updates
-
-### 11.3 Opportunity Monitor
-
-Displays:
-
-* Opportunity title
-* Impact level
-* Evidence
-* Confidence score
-
-The user can select a sample opportunity query or type a custom question.
-
-### 11.4 Risk Monitor
-
-Displays:
-
-* Risk title
-* Risk category
-* Severity level
-* Evidence
-* Confidence score
-
-The user can select a sample risk query or type a custom question.
-
-### 11.5 Sentiment Analysis
-
-Displays:
-
-* News sentiment
-* Sentiment by source
-* Sentiment by category
-* Document-level sentiment
-
-### 11.6 Strategic Recommendations
-
-Displays:
-
-* Recommendation
-* Priority
-* Supporting evidence
-* Expected impact
-* Risk level
-* Risk assessment
-
-### 11.7 CEO Briefing
-
-Generates a short executive summary answering:
-
-* What happened?
-* Why does it matter?
-* What should management do next?
-
-The CEO briefing is intentionally concise so that a decision-maker can quickly understand the situation, risks, opportunities, and recommended next steps.
+This tab demonstrates the agentic workflow clearly.
 
 ---
 
-## 12. Design Decisions
+## 12. Technology Stack
 
-### 12.1 SQLite for structured storage
-
-SQLite was selected because it is simple, lightweight, and suitable for a student prototype. It stores collected articles, processed chunks, and related metadata without needing an external database server.
-
-### 12.2 ChromaDB for semantic search
-
-ChromaDB was used as the vector store because it supports embedding-based semantic retrieval. This is important because a CEO question may not use the exact same words as the collected articles.
-
-### 12.3 Character-based chunking
-
-Character-based chunking was selected to keep retrieved evidence focused. The 150-character overlap helps preserve context between neighbouring chunks.
-
-### 12.4 Local open-source LLM
-
-The project uses a local model through Ollama instead of a paid commercial API. This supports the requirement to use open-source or freely accessible models.
-
-### 12.5 Evidence-based recommendation logic
-
-The system does not simply ask the LLM to invent strategy. It first retrieves evidence, detects risks and opportunities, and then creates recommendations based on that evidence.
-
-This improves explainability and reduces hallucination risk.
-
-### 12.6 Modular project structure
-
-The project is separated into folders for data collection, data processing, storage, vector search, RAG pipeline, intelligence engine, local LLM integration, and dashboard tabs. This makes the system easier to explain, debug, and extend during live coding.
-
-### 12.7 RAG pipeline wrapper
-
-The actual RAG logic was already distributed across vector store, agent, and intelligence engine modules. The `rag_pipeline/` folder was added as a clear wrapper for testing, demonstration, and viva explanation.
+| Component                  | Technology                                       |
+| -------------------------- | ------------------------------------------------ |
+| Programming language       | Python                                           |
+| Dashboard                  | Streamlit                                        |
+| Database                   | SQLite                                           |
+| Vector database            | ChromaDB                                         |
+| Embedding model            | sentence-transformers / all-MiniLM-L6-v2         |
+| Retrieval                  | Semantic search / RAG                            |
+| Sentiment analysis         | VADER Sentiment                                  |
+| Local LLM                  | Ollama with Qwen2.5:3B                           |
+| Data handling              | pandas                                           |
+| Visualization              | Streamlit / Plotly                               |
+| Article collection support | requests, BeautifulSoup, feedparser, trafilatura |
+| Version control            | Git and GitHub                                   |
 
 ---
 
@@ -487,9 +328,25 @@ ai_ceo_agent/
 ├── README.md
 ├── requirements.txt
 │
-├── agents/
+├── agent/
 │   ├── __init__.py
-│   └── ceo_agent.py
+│   ├── ai_ceo_agent.py
+│   ├── planner.py
+│   ├── validator.py
+│   └── memory.py
+│
+├── tools/
+│   ├── __init__.py
+│   └── strategic_tools.py
+│
+├── intelligence/
+│   ├── __init__.py
+│   └── strategic_analyzer.py
+│
+├── retrieval/
+│   ├── __init__.py
+│   ├── build_vector_store.py
+│   └── semantic_retriever.py
 │
 ├── dashboard/
 │   ├── __init__.py
@@ -502,104 +359,134 @@ ai_ceo_agent/
 │       ├── risk_tab.py
 │       ├── sentiment_tab.py
 │       ├── recommendations_tab.py
-│       └── ceo_briefing_tab.py
-│
-├── data/
-│   ├── ai_ceo.db
-│   └── source_plan.csv
+│       ├── ceo_briefing_tab.py
+│       └── agent_trace_tab.py
 │
 ├── data_collection/
 │   ├── __init__.py
-│   └── collect_final_three_sources.py
+│   └── collect_articles.py
 │
-├── data_processing/
-│   ├── __init__.py
-│   ├── clean_text.py
-│   ├── deduplicate.py
-│   └── chunk_documents_char.py
+├── processing/
+│   └── __init__.py
 │
-├── intelligence_engine/
+├── storage/
 │   ├── __init__.py
-│   ├── risk_detector.py
-│   ├── opportunity_detector.py
-│   ├── trend_detector.py
-│   ├── sentiment_analyzer.py
-│   └── recommendation_engine.py
-│
-├── rag_pipeline/
-│   ├── __init__.py
-│   ├── indexing_pipeline.py
-│   ├── query_pipeline.py
-│   ├── rag_orchestrator.py
-│   └── README.md
+│   └── sqlite_store.py
 │
 ├── llm/
 │   ├── __init__.py
 │   └── ollama_client.py
+│
+├── data/
+│   └── ai_ceo.db
 │
 ├── scripts/
 │   └── checks/
 │       ├── check_chunks.py
 │       └── check_database.py
 │
-├── storage/
-│   ├── __init__.py
-│   └── sqlite_store.py
-│
 ├── utils/
 │   ├── __init__.py
 │   └── config.py
 │
-└── vector_store/
-    ├── __init__.py
-    ├── build_chroma.py
-    └── retriever.py
+└── archive_old/
+    └── old duplicate folders kept only as backup
 ```
+
+The active project uses the clean folders above. The `archive_old/` folder is only kept as backup and is not part of the active pipeline.
 
 ---
 
-## 14. How to Run the Project
+## 14. Important Files and Responsibilities
 
-### Step 1: Create and activate virtual environment
+| File                                 | Responsibility                              |
+| ------------------------------------ | ------------------------------------------- |
+| `app.py`                             | Main Streamlit dashboard entry point        |
+| `agent/ai_ceo_agent.py`              | Main AI CEO Agent                           |
+| `agent/planner.py`                   | Creates plan and selects tools              |
+| `agent/validator.py`                 | Validates final recommendation              |
+| `agent/memory.py`                    | Saves agent runs in SQLite                  |
+| `tools/strategic_tools.py`           | Contains the 5 tools used by the agent      |
+| `intelligence/strategic_analyzer.py` | Strategic analysis and recommendation logic |
+| `retrieval/semantic_retriever.py`    | Retrieves relevant chunks from ChromaDB     |
+| `retrieval/build_vector_store.py`    | Builds the ChromaDB vector store            |
+| `dashboard/tabs/agent_trace_tab.py`  | Displays the full agent trace               |
+| `llm/ollama_client.py`               | Connects to local Ollama LLM                |
+| `storage/sqlite_store.py`            | SQLite helper functions                     |
+
+---
+
+## 15. How to Run the Project
+
+### Step 1: Create virtual environment
 
 ```powershell
 python -m venv .venv
+```
+
+### Step 2: Activate virtual environment
+
+```powershell
 .\.venv\Scripts\Activate.ps1
 ```
 
-### Step 2: Install requirements
+### Step 3: Install dependencies
 
 ```powershell
 pip install -r requirements.txt
 ```
 
-### Step 3: Check database
+### Step 4: Set Python path
+
+```powershell
+$env:PYTHONPATH = "."
+```
+
+### Step 5: Check database
 
 ```powershell
 python scripts/checks/check_database.py
 ```
 
-### Step 4: Check chunks
+### Step 6: Check chunks
 
 ```powershell
 python scripts/checks/check_chunks.py
 ```
 
-### Step 5: Rebuild vector store if needed
+### Step 7: Rebuild vector store if needed
 
-If the `chroma_db/` folder is not available, rebuild it using:
-
-```powershell
-python -m vector_store.build_chroma
-```
-
-or using the RAG pipeline wrapper:
+If the `chroma_db/` folder is missing or needs to be rebuilt, run:
 
 ```powershell
-python -m rag_pipeline.indexing_pipeline
+python -m retrieval.build_vector_store
 ```
 
-### Step 6: Run the dashboard
+### Step 8: Test planner
+
+```powershell
+python -m agent.planner
+```
+
+### Step 9: Test tools
+
+```powershell
+python -m tools.strategic_tools
+```
+
+### Step 10: Test AI CEO Agent
+
+```powershell
+python -m agent.ai_ceo_agent
+```
+
+### Step 11: Compile check
+
+```powershell
+python -m compileall app.py agent tools intelligence retrieval dashboard llm storage utils
+```
+
+### Step 12: Run dashboard
 
 ```powershell
 streamlit run app.py
@@ -607,61 +494,151 @@ streamlit run app.py
 
 ---
 
-## 15. Important Note About ChromaDB
-
-The `chroma_db/` folder is a generated vector database folder. It is not required to push this folder to GitHub because it can be recreated from the stored chunks.
-
-To recreate it:
-
-```powershell
-python -m vector_store.build_chroma
-```
-
----
-
 ## 16. Example CEO Questions
+
+The system can answer questions such as:
 
 ```text
 What should BMW do next in EV strategy?
-What are BMW's biggest risks in the electric vehicle market?
+What are BMW's biggest risks in the EV market?
 What opportunities does BMW have from Neue Klasse?
 How should BMW respond to Tesla and BYD competition?
 What battery and charging trends should BMW focus on?
+What is the evidence sentiment around BMW EV strategy?
 ```
 
 ---
 
-## 17. Current Limitations
+## 17. Example Agent Workflow
+
+For the question:
+
+```text
+What are BMW's biggest risks in the EV market?
+```
+
+The AI CEO Agent performs the following workflow:
+
+1. Classifies the question as risk analysis.
+2. Creates a plan.
+3. Selects 5 tools.
+4. Retrieves relevant evidence from ChromaDB.
+5. Analyzes risks, opportunities, and trends.
+6. Calculates evidence sentiment.
+7. Generates a CEO-level recommendation.
+8. Validates the output.
+9. Saves the run in memory.
+10. Displays the result in the dashboard.
+
+Example selected tools:
+
+```text
+search_evidence_tool
+analysis_tool
+sentiment_tool
+recommendation_tool
+validation_tool
+```
+
+---
+
+## 18. Explainability and Hallucination Control
+
+The system reduces hallucination risk by using an evidence-first approach.
+
+The LLM is not used as the only source of truth. The system first retrieves relevant evidence, extracts supported risks and opportunities, generates actions from the retrieved evidence, and validates the final response.
+
+The local LLM is optional and mainly used for rewriting the final response into a more readable CEO-style briefing.
+
+If LLM rewriting is not used, the system still produces a rule-based evidence-supported recommendation.
+
+---
+
+## 19. Design Decisions
+
+### 19.1 One main agent instead of many agents
+
+The project uses one main AI CEO Agent to avoid unnecessary complexity. This makes the system easier to explain during viva and easier to debug during live coding.
+
+### 19.2 Five strategic tools
+
+The system uses only five tools to keep the design clean:
+
+1. Evidence search
+2. Strategic analysis
+3. Sentiment analysis
+4. Recommendation generation
+5. Validation
+
+### 19.3 SQLite for storage
+
+SQLite was selected because it is lightweight and suitable for an academic prototype. It stores articles, chunks, and agent memory without requiring a separate database server.
+
+### 19.4 ChromaDB for semantic retrieval
+
+ChromaDB was selected because it supports embedding-based retrieval. This is useful because CEO questions may not use the same words as the articles.
+
+### 19.5 all-MiniLM-L6-v2 for embeddings
+
+The project uses `all-MiniLM-L6-v2` because it is lightweight, fast, and suitable for semantic search in a student prototype.
+
+### 19.6 VADER for sentiment analysis
+
+VADER is used because it is simple, explainable, and suitable for article-level sentiment analysis.
+
+### 19.7 Ollama for local LLM rewriting
+
+Ollama with Qwen2.5:3B is used as an optional local LLM. This avoids dependency on paid APIs and keeps the project aligned with open-source / freely accessible model requirements.
+
+---
+
+## 20. Current Limitations
 
 This is an academic prototype, so there are some limitations:
 
 1. The system uses public articles only.
-2. The data collection is script-based and rerunnable, not continuous real-time scraping inside the dashboard.
-3. The quality of intelligence depends on the collected dataset.
-4. The local LLM is used mainly for rewriting supported points.
-5. The recommendation engine uses explainable rule-supported logic, not enterprise-grade strategy automation.
-6. The vector database needs to be rebuilt if the `chroma_db/` folder is not included.
+2. The data collection is script-based, not continuous live scraping.
+3. The quality of recommendations depends on the collected dataset.
+4. The local LLM is used mainly for rewriting, not as the only reasoning engine.
+5. The strategic analysis uses explainable rule-supported logic, not enterprise-grade forecasting.
+6. The vector store may need to be rebuilt if `chroma_db/` is missing.
+7. The system is designed for demonstration and learning, not production deployment.
 
 ---
 
-## 18. Future Improvements
+## 21. Future Improvements
 
 Possible future improvements include:
 
 * Add more public sources.
 * Add scheduled data collection.
 * Add source reliability scoring.
-* Add deeper competitor comparison.
 * Add time-based trend analysis.
-* Improve recommendation ranking.
+* Add deeper competitor comparison.
+* Add hybrid search using keyword search plus semantic search.
 * Add downloadable CEO report generation.
-* Add more advanced hybrid search.
+* Add visual evidence graph.
+* Improve recommendation ranking.
+* Add automated evaluation for retrieved evidence quality.
 
 ---
 
-## 19. Conclusion
+## 22. Viva Explanation
 
-This project demonstrates how NLP, RAG, embeddings, vector databases, local LLMs, and a Streamlit dashboard can be combined to build a strategic intelligence assistant.
+A concise explanation for viva:
 
-The system converts public BMW EV-related information into risks, opportunities, trends, evidence-based recommendations, and concise CEO briefings for strategic decision support.
+```text
+My project is an AI CEO Strategic Intelligence Agent for BMW EV strategy.
 
+The system collects public BMW EV-related articles, stores them in SQLite, chunks the text, creates embeddings using all-MiniLM-L6-v2, and stores them in ChromaDB. When a CEO question is asked, the AI CEO Agent creates a plan, selects five tools, retrieves evidence, analyzes risks, opportunities, trends and sentiment, generates a recommendation, validates the output, saves the run in memory, and displays the full trace in the dashboard.
+
+This is not only a RAG pipeline because the system shows planning, tool selection, tool execution, decision trace, validation, and memory.
+```
+
+---
+
+## 23. Conclusion
+
+This project demonstrates how NLP, RAG, embeddings, vector databases, local LLMs, strategic analysis, and a Streamlit dashboard can be combined to build an AI CEO Strategic Intelligence Agent.
+
+The final system converts public BMW EV-related information into evidence-based risks, opportunities, trends, sentiment, strategic recommendations, and CEO-level briefings.

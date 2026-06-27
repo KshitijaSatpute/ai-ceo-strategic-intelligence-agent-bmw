@@ -18,6 +18,7 @@ from dashboard.tabs.risk_tab import render_risk_tab
 from dashboard.tabs.sentiment_tab import render_sentiment_tab
 from dashboard.tabs.recommendations_tab import render_recommendations_tab
 from dashboard.tabs.ceo_briefing_tab import render_ceo_briefing_tab
+from dashboard.tabs.agent_trace_tab import render_agent_trace_tab
 
 
 def get_total_chunks():
@@ -98,14 +99,15 @@ with col5:
 
 st.write(f"Last Update: {stats['last_update']}")
 
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "📊 Overview",
     "🌍 Market Intelligence",
     "🚀 Opportunities",
     "⚠️ Risk Monitor",
     "💬 Sentiment",
     "🎯 Recommendations",
-    "👁 CEO Briefing"
+    "👁 CEO Briefing",
+    "🤖 Agent Trace"
 ])
 
 with tab1:
@@ -128,3 +130,6 @@ with tab6:
 
 with tab7:
     render_ceo_briefing_tab()
+
+with tab8:
+    render_agent_trace_tab()
