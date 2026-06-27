@@ -1,90 +1,44 @@
 class AgentPlanner:
-    def create_plan(self, question):
+    def classify_question(self, question):
         question_lower = question.lower()
 
-        plan = {
+        if "risk" in question_lower or "threat" in question_lower or "challenge" in question_lower:
+            return "risk_analysis"
+
+        if "opportunity" in question_lower or "growth" in question_lower or "neue klasse" in question_lower:
+            return "opportunity_analysis"
+
+        if "tesla" in question_lower or "byd" in question_lower or "competition" in question_lower or "competitor" in question_lower:
+            return "competition_analysis"
+
+        if "sentiment" in question_lower or "public opinion" in question_lower or "market reaction" in question_lower:
+            return "sentiment_analysis"
+
+        return "full_strategy"
+
+    def create_plan(self, question):
+        query_type = self.classify_question(question)
+
+        return {
             "goal": question,
-            "query_type": "general_strategy",
-            "steps": [],
-            "tools": []
+            "query_type": query_type,
+            "steps": [
+                "Understand the CEO question",
+                "Retrieve relevant BMW EV evidence",
+                "Analyze risk, opportunity, and trend signals",
+                "Check evidence sentiment",
+                "Generate CEO-level recommendation",
+                "Validate the recommendation",
+                "Save the agent run in memory"
+            ],
+            "tools": [
+                "search_evidence_tool",
+                "analysis_tool",
+                "sentiment_tool",
+                "recommendation_tool",
+                "validation_tool"
+            ]
         }
-
-        if "risk" in question_lower or "threat" in question_lower:
-            plan["query_type"] = "risk_analysis"
-            plan["steps"] = [
-                "Retrieve relevant BMW EV evidence",
-                "Analyze risk signals",
-                "Analyze market trends",
-                "Generate CEO recommendation",
-                "Validate recommendation",
-                "Save agent memory"
-            ]
-            plan["tools"] = [
-                "search_evidence_tool",
-                "risk_analysis_tool",
-                "trend_analysis_tool",
-                "recommendation_tool",
-                "validation_tool",
-                "memory_tool"
-            ]
-
-        elif "opportunity" in question_lower or "neue klasse" in question_lower:
-            plan["query_type"] = "opportunity_analysis"
-            plan["steps"] = [
-                "Retrieve relevant BMW EV evidence",
-                "Analyze opportunity signals",
-                "Analyze market trends",
-                "Generate CEO recommendation",
-                "Validate recommendation",
-                "Save agent memory"
-            ]
-            plan["tools"] = [
-                "search_evidence_tool",
-                "opportunity_analysis_tool",
-                "trend_analysis_tool",
-                "recommendation_tool",
-                "validation_tool",
-                "memory_tool"
-            ]
-
-        elif "sentiment" in question_lower:
-            plan["query_type"] = "sentiment_analysis"
-            plan["steps"] = [
-                "Retrieve relevant BMW EV evidence",
-                "Analyze sentiment",
-                "Generate summary",
-                "Validate output",
-                "Save agent memory"
-            ]
-            plan["tools"] = [
-                "search_evidence_tool",
-                "sentiment_analysis_tool",
-                "validation_tool",
-                "memory_tool"
-            ]
-
-        else:
-            plan["query_type"] = "full_strategy"
-            plan["steps"] = [
-                "Retrieve relevant BMW EV evidence",
-                "Analyze risks",
-                "Analyze opportunities",
-                "Analyze trends",
-                "Generate CEO recommendation",
-                "Validate recommendation",
-                "Save agent memory"
-            ]
-            plan["tools"] = [
-                "search_evidence_tool",
-                "risk_analysis_tool",
-                "opportunity_analysis_tool",
-                "trend_analysis_tool",
-                "recommendation_tool",
-                "validation_tool",
-                "memory_tool"
-            ]
-
-        return plan
 
 
 if __name__ == "__main__":

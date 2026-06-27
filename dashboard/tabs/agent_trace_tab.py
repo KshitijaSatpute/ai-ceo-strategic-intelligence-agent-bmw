@@ -8,8 +8,9 @@ def render_agent_trace_tab():
     st.subheader("AI CEO Agent Trace")
 
     st.write(
-        "This section shows explicit agent behaviour: goal understanding, planning, "
-        "tool selection, tool execution, decisions, validation, memory saving, and final output."
+        "This tab shows why the system is agentic: the AI CEO Agent creates a plan, "
+        "selects tools, executes tools, makes decisions, validates the answer, "
+        "saves the run in memory, and returns a CEO-level briefing."
     )
 
     sample_questions = [
@@ -50,16 +51,18 @@ def render_agent_trace_tab():
             st.session_state["agent_trace_result"] = result
 
     if "agent_trace_result" not in st.session_state:
-        st.info("Run the AI CEO Agent to see planning, tool execution, validation, and memory.")
+        st.info("Run the AI CEO Agent to see the full trace.")
         return
 
     result = st.session_state["agent_trace_result"]
     trace = result["agent_trace"]
 
-    st.subheader("Goal")
+    st.divider()
+
+    st.subheader("1. Goal")
     st.info(trace["goal"])
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
 
     with col1:
         st.metric("Query Type", trace["query_type"])
@@ -70,30 +73,37 @@ def render_agent_trace_tab():
     with col3:
         st.metric("Confidence", result["confidence"])
 
-    st.subheader("Agent Plan")
+    with col4:
+        sentiment = result.get("sentiment", {})
+        st.metric("Sentiment", sentiment.get("label", "Unknown"))
+
+    st.subheader("2. Agent Plan")
     for step in trace["plan_steps"]:
         st.write(f"- {step}")
 
-    st.subheader("Selected Tools")
-    selected_tools_df = pd.DataFrame({
-        "Selected Tools": trace["selected_tools"]
-    })
-    st.dataframe(selected_tools_df, use_container_width=True)
+    st.subheader("3. Selected Tools")
+    st.dataframe(
+        pd.DataFrame({"Selected Tools": trace["selected_tools"]}),
+        use_container_width=True
+    )
 
-    st.subheader("Executed Tools")
-    executed_tools_df = pd.DataFrame({
-        "Executed Tools": trace["executed_tools"]
-    })
-    st.dataframe(executed_tools_df, use_container_width=True)
+    st.subheader("4. Executed Tools")
+    st.dataframe(
+        pd.DataFrame({"Executed Tools": trace["executed_tools"]}),
+        use_container_width=True
+    )
 
-    st.subheader("Agent Decisions")
+    st.subheader("5. Agent Decisions")
     for decision in trace["decisions"]:
         st.write(f"- {decision}")
 
-    st.subheader("Validation Result")
+    st.subheader("6. Validation Result")
     validation = trace["validation"]
 
-    st.write(f"**Status:** {validation.get('status', 'unknown')}")
+    if validation.get("status") == "passed":
+        st.success("Validation status: passed")
+    else:
+        st.error("Validation status: failed or needs review")
 
     if validation.get("checks"):
         st.write("**Passed checks:**")
@@ -101,18 +111,17 @@ def render_agent_trace_tab():
             st.write(f"- {check}")
 
     if validation.get("warnings"):
-        st.warning("Warnings found:")
+        st.warning("Warnings:")
         for warning in validation["warnings"]:
             st.write(f"- {warning}")
 
-    st.subheader("Final CEO Briefing")
+    st.subheader("7. Final CEO Briefing")
     st.write(result["final_briefing"])
-
     st.caption(f"Generation mode: {result['generation_mode']}")
 
-    st.subheader("Supporting Evidence")
-    evidence_rows = []
+    st.subheader("8. Supporting Evidence")
 
+    evidence_rows = []
     for item in result.get("evidence", []):
         evidence_rows.append({
             "Rank": item.get("rank"),

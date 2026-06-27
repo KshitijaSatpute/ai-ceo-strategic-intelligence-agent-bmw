@@ -4,7 +4,7 @@ from agent.memory import AgentMemory
 
 
 class StrategicAgent:
-    def __init__(self, top_k=8, use_llm=True):
+    def __init__(self, top_k=5, use_llm=False):
         self.planner = AgentPlanner()
         self.tools = StrategicTools(top_k=top_k, use_llm=use_llm)
         self.memory = AgentMemory()
@@ -16,65 +16,45 @@ class StrategicAgent:
             "goal": question,
             "query_type": plan["query_type"],
             "plan_steps": plan["steps"],
-            "selected_tools": plan["tools"].copy(),
+            "selected_tools": plan["tools"],
             "executed_tools": [],
             "decisions": [],
             "validation": {}
         }
 
         trace["decisions"].append(
-            f"Agent classified the question as: {plan['query_type']}"
+            f"Agent classified the question as: {plan['query_type']}."
         )
 
-        evidence = self.tools.search_evidence_tool(question)
+        evidence_items = self.tools.search_evidence_tool(question)
         trace["executed_tools"].append("search_evidence_tool")
         trace["decisions"].append(
-            f"Retrieved {len(evidence)} evidence items from ChromaDB."
+            f"Retrieved {len(evidence_items)} evidence items from ChromaDB using semantic search."
         )
 
-        risks = []
-        opportunities = []
-        trends = []
+        analysis = self.tools.analysis_tool(evidence_items)
+        trace["executed_tools"].append("analysis_tool")
+        trace["decisions"].append(
+            "Analyzed retrieved evidence for risks, opportunities, and trends."
+        )
 
-        if "risk_analysis_tool" in trace["selected_tools"]:
-            risks = self.tools.risk_analysis_tool(evidence)
-            trace["executed_tools"].append("risk_analysis_tool")
-
-        if "opportunity_analysis_tool" not in trace["selected_tools"]:
-            trace["selected_tools"].append("opportunity_analysis_tool")
-            trace["decisions"].append(
-                "Agent added opportunity_analysis_tool because recommendation needs opportunity context."
-            )
-
-        opportunities = self.tools.opportunity_analysis_tool(evidence)
-        trace["executed_tools"].append("opportunity_analysis_tool")
-
-        if "trend_analysis_tool" in trace["selected_tools"]:
-            trends = self.tools.trend_analysis_tool(evidence)
-            trace["executed_tools"].append("trend_analysis_tool")
-
-        if not risks:
-            risks = self.tools.risk_analysis_tool(evidence)
-            trace["executed_tools"].append("risk_analysis_tool")
-            trace["decisions"].append(
-                "Agent added risk_analysis_tool because recommendation needs risk context."
-            )
-
-        if not trends:
-            trends = self.tools.trend_analysis_tool(evidence)
-            trace["executed_tools"].append("trend_analysis_tool")
-            trace["decisions"].append(
-                "Agent added trend_analysis_tool because recommendation needs trend context."
-            )
+        sentiment = self.tools.sentiment_tool(evidence_items)
+        trace["executed_tools"].append("sentiment_tool")
+        trace["decisions"].append(
+            f"Calculated evidence sentiment as {sentiment['label']} with compound score {sentiment['compound']}."
+        )
 
         result = self.tools.recommendation_tool(
             question,
-            evidence,
-            risks,
-            opportunities,
-            trends
+            evidence_items,
+            analysis,
+            sentiment
         )
+
         trace["executed_tools"].append("recommendation_tool")
+        trace["decisions"].append(
+            "Generated CEO-level recommendation using retrieved evidence and strategic analysis."
+        )
 
         validation = self.tools.validation_tool(result)
         trace["executed_tools"].append("validation_tool")
@@ -86,28 +66,35 @@ class StrategicAgent:
             )
         else:
             trace["decisions"].append(
-                "Recommendation failed validation or needs review."
+                "Recommendation needs review because validation found issues."
             )
 
         result["agent_trace"] = trace
         result["validation"] = validation
 
         memory_id = self.memory.save_run(result)
-        trace["executed_tools"].append("memory_tool")
         trace["decisions"].append(
-            f"Agent run saved to memory with ID: {memory_id}"
+            f"Agent run saved to memory with ID: {memory_id}."
         )
 
         result["agent_trace"] = trace
 
         return result
 
-    def print_result(self, result):
-        print("\n" + "=" * 90)
-        print("AI CEO STRATEGIC AGENT")
-        print("=" * 90)
+    def ask(self, question):
+        result = self.run(question)
 
+        result["answer"] = result.get("final_briefing", "")
+        result["sources"] = result.get("evidence", [])
+
+        return result
+
+    def print_result(self, result):
         trace = result["agent_trace"]
+
+        print("\n" + "=" * 90)
+        print("AI CEO AGENT")
+        print("=" * 90)
 
         print("\nGoal:")
         print(trace["goal"])
@@ -140,6 +127,9 @@ class StrategicAgent:
         print("\nConfidence:")
         print(result["confidence"])
 
+        print("\nSentiment:")
+        print(result["sentiment"])
+
         print("\nFinal briefing:")
         print(result["final_briefing"])
 
@@ -150,6 +140,9 @@ class StrategicAgent:
             print(f"Source: {item['source']}")
             print(f"Title: {item['title']}")
             print(f"Similarity: {item['similarity']}")
+
+
+AICEOAgent = StrategicAgent
 
 
 if __name__ == "__main__":
