@@ -664,4 +664,3 @@ Possible future improvements include:
 This project demonstrates how NLP, RAG, embeddings, vector databases, local LLMs, and a Streamlit dashboard can be combined to build a strategic intelligence assistant.
 
 The system converts public BMW EV-related information into risks, opportunities, trends, evidence-based recommendations, and concise CEO briefings for strategic decision support.
-

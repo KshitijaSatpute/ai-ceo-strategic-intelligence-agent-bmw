@@ -14,8 +14,9 @@ class OllamaClient:
             "model": self.model_name,
             "prompt": prompt,
             "stream": False,
-            "options": {
-                "temperature": temperature
+            "options": 
+            {
+            "temperature": temperature
             }
         }
 
