@@ -1,66 +1,70 @@
 class AgentValidator:
     def validate(self, result):
-        validation = {
-            "status": "passed",
-            "checks": [],
-            "warnings": []
-        }
+        checks = []
+        issues = []
 
+        answer = result.get("answer") or result.get("final_briefing")
         evidence = result.get("evidence", [])
-        actions = result.get("actions", [])
-        confidence = result.get("confidence", "")
-        final_briefing = result.get("final_briefing", "")
+        used_evidence_ids = result.get("used_evidence_ids", [])
+
+        if answer and len(answer.strip()) > 50:
+            checks.append("Answer exists")
+        else:
+            issues.append("Answer is missing or too short")
 
         if evidence:
-            validation["checks"].append("Supporting evidence is available.")
+            checks.append("Evidence exists")
         else:
-            validation["status"] = "failed"
-            validation["warnings"].append("No supporting evidence found.")
+            issues.append("No supporting evidence found")
 
-        if actions:
-            validation["checks"].append("Recommended actions are available.")
-        else:
-            validation["status"] = "failed"
-            validation["warnings"].append("No recommended actions generated.")
-
-        if confidence in ["High", "Medium"]:
-            validation["checks"].append("Confidence is acceptable.")
-        else:
-            validation["warnings"].append("Confidence is low.")
-
-        if len(final_briefing.strip()) > 100:
-            validation["checks"].append("Final briefing is generated.")
-        else:
-            validation["status"] = "failed"
-            validation["warnings"].append("Final briefing is too short or missing.")
-
-        unsafe_terms = [
-            "not explicitly stated",
-            "implied by industry trends",
-            "toyota partnership",
-            "bmw's existing models like the ioniq",
-            "bmw’s existing models like the ioniq",
-            "mustang mach-e are bmw models"
+        evidence_ids = [
+            item.get("evidence_id") for item in evidence
+            if item.get("evidence_id")
         ]
 
-        briefing_lower = final_briefing.lower()
+        invalid_ids = [
+            evidence_id for evidence_id in used_evidence_ids
+            if evidence_id not in evidence_ids
+        ]
 
-        for term in unsafe_terms:
-            if term in briefing_lower:
-                validation["status"] = "failed"
-                validation["warnings"].append(f"Unsafe unsupported phrase found: {term}")
+        if used_evidence_ids and not invalid_ids:
+            checks.append("Valid evidence IDs are used")
+        else:
+            issues.append("Valid evidence IDs are missing or incorrect")
 
-        return validation
+        if result.get("recommendation") or result.get("actions"):
+            checks.append("Recommendation is included")
+        else:
+            issues.append("Recommendation is missing")
 
+        if result.get("risks") is not None:
+            checks.append("Risk section is present")
+        else:
+            issues.append("Risk section is missing")
 
-if __name__ == "__main__":
-    validator = AgentValidator()
+        if result.get("priority") in ["High", "Medium", "Low"]:
+            checks.append("Priority is mentioned")
+        else:
+            issues.append("Priority is missing or invalid")
 
-    sample_result = {
-        "evidence": [{"title": "sample evidence"}],
-        "actions": ["sample action"],
-        "confidence": "High",
-        "final_briefing": "This is a sample evidence-supported CEO briefing for validation testing."
-    }
+        if result.get("confidence") in ["High", "Medium", "Low"]:
+            checks.append("Confidence is mentioned")
+        else:
+            issues.append("Confidence is missing or invalid")
 
-    print(validator.validate(sample_result))
+        if issues:
+            status = "failed"
+            approved = False
+            decision = "Recommendation needs review before approval."
+        else:
+            status = "passed"
+            approved = True
+            decision = "Recommendation approved."
+
+        return {
+            "status": status,
+            "approved": approved,
+            "checks": checks,
+            "issues": issues,
+            "decision": decision
+        }
