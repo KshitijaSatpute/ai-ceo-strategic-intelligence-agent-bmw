@@ -1,138 +1,155 @@
-import streamlit as st
 import pandas as pd
+import streamlit as st
 
-from agent.ai_ceo_agent import StrategicAgent
+
+def build_evidence_table(result):
+    rows = []
+
+    for item in result.get("evidence", []):
+        text = item.get("text", "")
+        preview = text[:250] + "..." if len(text) > 250 else text
+
+        rows.append({
+            "Evidence ID": item.get("evidence_id", ""),
+            "Rank": item.get("rank", ""),
+            "Source": item.get("source", "Unknown"),
+            "Category": item.get("category", "Unknown"),
+            "Title": item.get("title", "Untitled"),
+            "Similarity": item.get("similarity", ""),
+            "Text Preview": preview,
+            "URL": item.get("url", "")
+        })
+
+    return pd.DataFrame(rows)
 
 
-def render_agent_trace_tab():
-    st.subheader("AI CEO Agent Trace")
+def render_validation(validation):
+    status = validation.get("status", "unknown")
 
-    st.write(
-        "This tab shows why the system is agentic: the AI CEO Agent creates a plan, "
-        "selects tools, executes tools, makes decisions, validates the answer, "
-        "saves the run in memory, and returns a CEO-level briefing."
-    )
-
-    sample_questions = [
-        "What are BMW's biggest risks in the EV market?",
-        "What opportunities does BMW have from Neue Klasse?",
-        "How should BMW respond to Tesla and BYD competition?",
-        "What battery and charging trends should BMW focus on?",
-        "What should BMW do next in EV strategy?"
-    ]
-
-    selected_question = st.selectbox(
-        "Select an agent question",
-        sample_questions,
-        key="agent_trace_question_select"
-    )
-
-    custom_question = st.text_input(
-        "Or enter your own CEO question",
-        placeholder="Example: What should BMW prioritize in EV strategy?",
-        key="agent_trace_custom_question"
-    )
-
-    if custom_question.strip():
-        final_question = custom_question.strip()
+    if status == "passed":
+        st.success("Validation passed. Recommendation approved.")
     else:
-        final_question = selected_question
-
-    use_llm = st.checkbox(
-        "Use local Ollama LLM for final rewriting",
-        value=False,
-        key="agent_trace_use_llm"
-    )
-
-    if st.button("Run AI CEO Agent", key="run_agent_trace_button"):
-        with st.spinner("Agent is planning, selecting tools, retrieving evidence, analyzing, validating, and saving memory..."):
-            agent = StrategicAgent(top_k=5, use_llm=use_llm)
-            result = agent.run(final_question)
-            st.session_state["agent_trace_result"] = result
-
-    if "agent_trace_result" not in st.session_state:
-        st.info("Run the AI CEO Agent to see the full trace.")
-        return
-
-    result = st.session_state["agent_trace_result"]
-    trace = result["agent_trace"]
-
-    st.divider()
-
-    st.subheader("1. Goal")
-    st.info(trace["goal"])
-
-    col1, col2, col3, col4 = st.columns(4)
-
-    with col1:
-        st.metric("Query Type", trace["query_type"])
-
-    with col2:
-        st.metric("Priority", result["priority"])
-
-    with col3:
-        st.metric("Confidence", result["confidence"])
-
-    with col4:
-        sentiment = result.get("sentiment", {})
-        st.metric("Sentiment", sentiment.get("label", "Unknown"))
-
-    st.subheader("2. Agent Plan")
-    for step in trace["plan_steps"]:
-        st.write(f"- {step}")
-
-    st.subheader("3. Selected Tools")
-    st.dataframe(
-        pd.DataFrame({"Selected Tools": trace["selected_tools"]}),
-        use_container_width=True
-    )
-
-    st.subheader("4. Executed Tools")
-    st.dataframe(
-        pd.DataFrame({"Executed Tools": trace["executed_tools"]}),
-        use_container_width=True
-    )
-
-    st.subheader("5. Agent Decisions")
-    for decision in trace["decisions"]:
-        st.write(f"- {decision}")
-
-    st.subheader("6. Validation Result")
-    validation = trace["validation"]
-
-    if validation.get("status") == "passed":
-        st.success("Validation status: passed")
-    else:
-        st.error("Validation status: failed or needs review")
+        st.error("Validation failed or needs review.")
 
     if validation.get("checks"):
         st.write("**Passed checks:**")
         for check in validation["checks"]:
             st.write(f"- {check}")
 
-    if validation.get("warnings"):
-        st.warning("Warnings:")
-        for warning in validation["warnings"]:
-            st.write(f"- {warning}")
+    if validation.get("issues"):
+        st.write("**Validation issues:**")
+        for issue in validation["issues"]:
+            st.write(f"- {issue}")
 
-    st.subheader("7. Final CEO Briefing")
-    st.write(result["final_briefing"])
-    st.caption(f"Generation mode: {result['generation_mode']}")
+    if validation.get("decision"):
+        st.info(validation["decision"])
 
-    st.subheader("8. Supporting Evidence")
 
-    evidence_rows = []
-    for item in result.get("evidence", []):
-        evidence_rows.append({
-            "Rank": item.get("rank"),
-            "Source": item.get("source"),
-            "Category": item.get("category"),
-            "Title": item.get("title"),
-            "Similarity": item.get("similarity"),
-            "URL": item.get("url")
-        })
+def render_agent_trace_tab():
+    st.subheader("AI CEO Agent Trace")
 
-    if evidence_rows:
-        st.dataframe(pd.DataFrame(evidence_rows), use_container_width=True)
+    st.write(
+        "This tab does not ask for a separate query. It displays the latest agent run from "
+        "CEO Briefing or Strategic Recommendations. This keeps user questions only in those two tabs "
+        "and uses this tab as a transparent trace viewer."
+    )
+
+    result = st.session_state.get("latest_agent_result")
+
+    if not result:
+        st.info(
+            "No agent run available yet. Generate a CEO Briefing or Strategic Recommendation first, "
+            "then return here to view the full agent trace."
+        )
+        return
+
+    trace = result.get("agent_trace", {})
+
+    st.divider()
+
+    st.subheader("1. User Goal")
+    st.info(trace.get("goal", result.get("user_goal", "")))
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric("Detected Goal Type", trace.get("goal_type", result.get("goal_type", "Unknown")))
+
+    with col2:
+        st.metric("Priority", result.get("priority", "Unknown"))
+
+    with col3:
+        st.metric("Confidence", result.get("confidence", "Unknown"))
+
+    with col4:
+        sentiment = result.get("sentiment", {})
+        st.metric("Evidence Sentiment", sentiment.get("label", "Unknown"))
+
+    st.subheader("2. Agent Plan")
+
+    plan_steps = trace.get("plan_steps", [])
+    if plan_steps:
+        for step in plan_steps:
+            st.write(f"- {step}")
     else:
-        st.info("No evidence available.")
+        st.info("No plan steps available.")
+
+    st.subheader("3. Selected Tools")
+
+    selected_tools = trace.get("selected_tools", result.get("tools_used", []))
+    if selected_tools:
+        st.dataframe(
+            pd.DataFrame({"Selected Tools": selected_tools}),
+            use_container_width=True
+        )
+    else:
+        st.info("No selected tools available.")
+
+    st.subheader("4. Execution Trace")
+
+    execution_trace = trace.get("execution_trace", [])
+    if execution_trace:
+        for step in execution_trace:
+            st.write(f"- {step}")
+    else:
+        st.info("No execution trace available.")
+
+    st.subheader("5. Agent Decisions")
+
+    decisions = trace.get("agent_decisions", [])
+    if decisions:
+        for decision in decisions:
+            st.write(f"- {decision}")
+    else:
+        st.info("No agent decisions available.")
+
+    st.subheader("6. Validation Result")
+
+    validation = trace.get("validation_result", result.get("validation", {}))
+    render_validation(validation)
+
+    st.subheader("7. Memory Status")
+
+    memory = trace.get("memory_updated", result.get("memory", {}))
+    if memory.get("memory_saved"):
+        st.success(memory.get("message", "Agent run saved in memory."))
+        st.caption(f"Timestamp: {memory.get('timestamp', '')}")
+    else:
+        st.warning("Memory update status not available.")
+
+    st.subheader("8. Final CEO Recommendation")
+
+    answer = result.get("answer") or result.get("final_briefing", "")
+    if answer:
+        st.write(answer)
+    else:
+        st.warning("No final recommendation available.")
+
+    st.subheader("9. Supporting Evidence")
+
+    evidence_df = build_evidence_table(result)
+
+    if evidence_df.empty:
+        st.info("No supporting evidence available.")
+    else:
+        st.dataframe(evidence_df, use_container_width=True)

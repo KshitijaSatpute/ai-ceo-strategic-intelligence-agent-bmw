@@ -1,79 +1,122 @@
+import pandas as pd
 import streamlit as st
 
-from dashboard.common import (
-    load_ai_ceo_agent,
-    get_unique_evidence_items,
-    build_ceo_briefing_summary
-)
+from agent.ai_ceo_agent import StrategicAgent
+
+
+def build_evidence_table(result):
+    rows = []
+
+    for item in result.get("evidence", []):
+        rows.append({
+            "Evidence ID": item.get("evidence_id", ""),
+            "Rank": item.get("rank", ""),
+            "Source": item.get("source", "Unknown"),
+            "Category": item.get("category", "Unknown"),
+            "Title": item.get("title", "Untitled"),
+            "URL": item.get("url", "")
+        })
+
+    return pd.DataFrame(rows)
 
 
 def render_ceo_briefing_tab():
     st.subheader("CEO Briefing")
 
     st.write(
-        "This section gives a concise CEO-level executive summary. "
-        "Detailed recommendation tables are available in the Strategic Recommendations tab."
+        "This section generates a CEO-level executive briefing from a dynamic user goal. "
+        "The AI CEO Agent plans, selects tools, retrieves evidence, analyzes it, recommends actions, "
+        "validates the result, saves memory, and returns a trace."
     )
 
-    default_questions = [
-        "What should BMW do next in EV strategy?",
-        "What are BMW's biggest risks in the electric vehicle market?",
-        "What opportunities does BMW have from Neue Klasse?",
-        "How should BMW respond to Tesla and BYD competition?",
-        "What battery and charging trends should BMW focus on?"
-    ]
-
-    selected_question = st.selectbox(
-        "Choose a sample CEO question",
-        default_questions,
-        key="ceo_question_select"
+    user_goal = st.text_area(
+        "Enter a CEO-level strategic goal",
+        placeholder="Example: What should BMW do next in EV strategy?",
+        key="ceo_briefing_user_goal",
+        height=100
     )
 
-    custom_question = st.text_input(
-        "Or type your own question",
-        placeholder="Example: What should BMW prioritize in EV strategy?",
-        key="ceo_custom_question"
-    )
-
-    if custom_question.strip():
-        final_question = custom_question.strip()
-    else:
-        final_question = selected_question
-
-    generate_button = st.button(
+    run_button = st.button(
         "Generate CEO Briefing",
-        key="generate_ceo_recommendation"
+        key="generate_ceo_briefing_button"
     )
 
-    if generate_button:
-        with st.spinner("Generating CEO briefing using RAG + safe AI CEO agent..."):
-            agent = load_ai_ceo_agent()
-            result = agent.ask(final_question)
-            st.session_state["ceo_result"] = result
+    if run_button:
+        if not user_goal.strip():
+            st.warning("Please enter a CEO-level strategic goal first.")
+            return
 
-    if "ceo_result" in st.session_state:
-        result = st.session_state["ceo_result"]
+        with st.spinner("AI CEO Agent is generating an evidence-based briefing..."):
+            agent = StrategicAgent(top_k=5, use_llm=False)
+            result = agent.run(user_goal.strip())
+            st.session_state["ceo_briefing_result"] = result
+            st.session_state["latest_agent_result"] = result
+            st.session_state["latest_agent_result_source"] = "CEO Briefing"
 
-        st.subheader("CEO Question")
-        st.info(result["question"])
+    if "ceo_briefing_result" not in st.session_state:
+        st.info("Enter a CEO-level goal to generate the briefing.")
+        return
 
-        col1, col2, col3 = st.columns(3)
+    result = st.session_state["ceo_briefing_result"]
+    trace = result.get("agent_trace", {})
+    validation = result.get("validation", {})
 
-        with col1:
-            st.metric("Priority", result["priority"])
+    st.divider()
 
-        with col2:
-            st.metric("Confidence", result["confidence"])
+    st.subheader("CEO Goal")
+    st.info(result.get("user_goal", ""))
 
-        with col3:
-            st.metric("Unique Evidence Sources", len(get_unique_evidence_items(result)))
+    col1, col2, col3, col4 = st.columns(4)
 
-        st.caption(f"Generation mode: {result['generation_mode']}")
+    with col1:
+        st.metric("Detected Goal Type", result.get("goal_type", "Unknown"))
 
-        st.subheader("Executive Summary")
-        st.markdown(build_ceo_briefing_summary(result))
+    with col2:
+        st.metric("Priority", result.get("priority", "Unknown"))
 
-        st.info(
-            "Detailed risks, opportunities, recommendation tables, and full evidence "
-            "are shown in the Strategic Recommendations tab to avoid repetition."
-        )
+    with col3:
+        st.metric("Confidence", result.get("confidence", "Unknown"))
+
+    with col4:
+        st.metric("Evidence Chunks", len(result.get("evidence", [])))
+
+    st.subheader("Executive Briefing")
+
+    answer = result.get("answer") or result.get("final_briefing", "")
+    if answer:
+        st.write(answer)
+    else:
+        st.warning("No CEO briefing generated.")
+
+    st.subheader("Agent Plan")
+
+    plan_steps = trace.get("plan_steps", [])
+    if plan_steps:
+        for step in plan_steps:
+            st.write(f"- {step}")
+    else:
+        st.info("No plan available.")
+
+    st.subheader("Validation Result")
+
+    if validation.get("status") == "passed":
+        st.success("Validation passed. Briefing approved.")
+    else:
+        st.error("Validation failed or needs review.")
+
+    if validation.get("issues"):
+        for issue in validation["issues"]:
+            st.write(f"- {issue}")
+
+    st.subheader("Supporting Evidence")
+
+    evidence_df = build_evidence_table(result)
+
+    if evidence_df.empty:
+        st.info("No evidence available.")
+    else:
+        st.dataframe(evidence_df, use_container_width=True)
+
+    memory = result.get("memory", {})
+    if memory.get("memory_saved"):
+        st.success(memory.get("message", "Agent run saved in memory."))

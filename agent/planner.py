@@ -1,59 +1,135 @@
 class AgentPlanner:
-    def classify_question(self, question):
-        question_lower = question.lower()
+    def __init__(self):
+        self.goal_types = [
+            "strategic_decision",
+            "risk_analysis",
+            "opportunity_analysis",
+            "trend_analysis",
+            "competitor_analysis"
+        ]
 
-        if "risk" in question_lower or "threat" in question_lower or "challenge" in question_lower:
+    def detect_goal_type(self, user_goal):
+        goal = user_goal.lower()
+
+        risk_words = [
+            "risk", "risks", "threat", "threats", "challenge",
+            "problem", "weakness", "barrier", "limit", "decline"
+        ]
+
+        opportunity_words = [
+            "opportunity", "opportunities", "growth", "expand",
+            "increase", "advantage", "potential", "market"
+        ]
+
+        trend_words = [
+            "trend", "trends", "emerging", "future", "technology",
+            "innovation", "shift", "monitor"
+        ]
+
+        competitor_words = [
+            "competitor", "competition", "rival", "tesla", "byd",
+            "mercedes", "audi", "volkswagen", "market share"
+        ]
+
+        strategic_words = [
+            "what should", "next", "strategy", "strategic",
+            "prioritize", "recommend", "decision", "ceo"
+        ]
+
+        if any(word in goal for word in competitor_words):
+            return "competitor_analysis"
+
+        if any(word in goal for word in risk_words):
             return "risk_analysis"
 
-        if "opportunity" in question_lower or "growth" in question_lower or "neue klasse" in question_lower:
+        if any(word in goal for word in opportunity_words):
             return "opportunity_analysis"
 
-        if "tesla" in question_lower or "byd" in question_lower or "competition" in question_lower or "competitor" in question_lower:
-            return "competition_analysis"
+        if any(word in goal for word in trend_words):
+            return "trend_analysis"
 
-        if "sentiment" in question_lower or "public opinion" in question_lower or "market reaction" in question_lower:
-            return "sentiment_analysis"
+        if any(word in goal for word in strategic_words):
+            return "strategic_decision"
 
-        return "full_strategy"
+        return "strategic_decision"
 
-    def create_plan(self, question):
-        query_type = self.classify_question(question)
+    def select_tools(self, goal_type):
+        common_start = ["retrieve_evidence_tool"]
+        common_end = [
+            "generate_recommendation_tool",
+            "validate_recommendation_tool",
+            "save_memory_tool"
+        ]
+
+        if goal_type == "risk_analysis":
+            analysis_tools = [
+                "analyze_risks_tool",
+                "analyze_trends_tool"
+            ]
+
+        elif goal_type == "opportunity_analysis":
+            analysis_tools = [
+                "analyze_opportunities_tool",
+                "analyze_trends_tool"
+            ]
+
+        elif goal_type == "trend_analysis":
+            analysis_tools = [
+                "analyze_trends_tool"
+            ]
+
+        elif goal_type == "competitor_analysis":
+            analysis_tools = [
+                "analyze_competitors_tool",
+                "analyze_risks_tool"
+            ]
+
+        else:
+            analysis_tools = [
+                "analyze_opportunities_tool",
+                "analyze_risks_tool",
+                "analyze_trends_tool"
+            ]
+
+        return common_start + analysis_tools + common_end
+
+    def create_plan(self, user_goal):
+        goal_type = self.detect_goal_type(user_goal)
+        selected_tools = self.select_tools(goal_type)
+
+        plan_steps = [
+            "Receive the CEO-level user goal",
+            "Detect the goal type",
+            "Select tools based on the detected goal type",
+            "Retrieve supporting evidence from the vector database",
+            "Analyze the retrieved evidence using selected analysis tools",
+            "Generate a CEO-level recommendation",
+            "Validate the recommendation before approval",
+            "Save the agent run in memory",
+            "Return the result with trace and evidence"
+        ]
 
         return {
-            "goal": question,
-            "query_type": query_type,
-            "steps": [
-                "Understand the CEO question",
-                "Retrieve relevant BMW EV evidence",
-                "Analyze risk, opportunity, and trend signals",
-                "Check evidence sentiment",
-                "Generate CEO-level recommendation",
-                "Validate the recommendation",
-                "Save the agent run in memory"
-            ],
-            "tools": [
-                "search_evidence_tool",
-                "analysis_tool",
-                "sentiment_tool",
-                "recommendation_tool",
-                "validation_tool"
-            ]
+            "user_goal": user_goal,
+            "goal_type": goal_type,
+            "selected_tools": selected_tools,
+            "plan_steps": plan_steps
         }
 
 
 if __name__ == "__main__":
     planner = AgentPlanner()
 
-    question = "What are BMW's biggest risks in the EV market?"
-    plan = planner.create_plan(question)
+    test_goals = [
+        "What should BMW do next in EV strategy?",
+        "What are BMW's biggest risks in the EV market?",
+        "What opportunities does BMW have in electric vehicles?",
+        "Which EV trends should BMW monitor?",
+        "How should BMW respond to Tesla and BYD?"
+    ]
 
-    print("Goal:", plan["goal"])
-    print("Query type:", plan["query_type"])
-
-    print("\nPlan:")
-    for step in plan["steps"]:
-        print("-", step)
-
-    print("\nSelected tools:")
-    for tool in plan["tools"]:
-        print("-", tool)
+    for goal in test_goals:
+        plan = planner.create_plan(goal)
+        print("\nGoal:", goal)
+        print("Goal type:", plan["goal_type"])
+        print("Selected tools:", plan["selected_tools"])

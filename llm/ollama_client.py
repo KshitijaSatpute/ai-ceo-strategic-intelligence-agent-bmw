@@ -9,7 +9,7 @@ class OllamaClient:
     def __init__(self, model_name=OLLAMA_MODEL):
         self.model_name = model_name
 
-    def generate(self, prompt, temperature=0.0):  #TEMPERATURE controls randomness in generation. 0.0 = deterministic, higher values = more random 
+    def generate(self, prompt, temperature=0.2):  #TEMPERATURE controls randomness in generation. 0.0 = deterministic, higher values = more random 
         payload = {
             "model": self.model_name,
             "prompt": prompt,
