@@ -4,6 +4,12 @@ import streamlit as st
 from agent.ai_ceo_agent import StrategicAgent
 
 
+DEFAULT_RECOMMENDATION_QUERY = (
+    "What strategic actions should BMW prioritize to grow profitably in the EV market "
+    "while managing competition, innovation, demand, and strategic risks?"
+)
+
+
 def build_actions_table(result):
     rows = []
 
@@ -27,6 +33,7 @@ def build_risk_table(result):
             "Category": risk.get("category", "Strategic Risk"),
             "Severity": risk.get("severity", "Medium"),
             "Evidence ID": risk.get("evidence_id", ""),
+            "Matched Keywords": risk.get("matched_keywords", ""),
             "Reason": risk.get("reason", "")
         })
 
@@ -41,6 +48,7 @@ def build_opportunity_table(result):
             "Opportunity Title": opportunity.get("title", "Opportunity signal"),
             "Impact": opportunity.get("impact", "Medium"),
             "Evidence ID": opportunity.get("evidence_id", ""),
+            "Matched Keywords": opportunity.get("matched_keywords", ""),
             "Reason": opportunity.get("reason", "")
         })
 
@@ -55,6 +63,7 @@ def build_trend_table(result):
             "Trend Title": trend.get("title", "Trend signal"),
             "Type": trend.get("type", "Trend"),
             "Evidence ID": trend.get("evidence_id", ""),
+            "Matched Keywords": trend.get("matched_keywords", ""),
             "Reason": trend.get("reason", "")
         })
 
@@ -69,6 +78,7 @@ def build_competitor_table(result):
             "Competitive Signal": competitor.get("title", "Competitive signal"),
             "Category": competitor.get("category", "Competitive Signal"),
             "Evidence ID": competitor.get("evidence_id", ""),
+            "Matched Keywords": competitor.get("matched_keywords", ""),
             "Reason": competitor.get("reason", "")
         })
 
@@ -85,6 +95,7 @@ def build_evidence_table(result):
         rows.append({
             "Evidence ID": item.get("evidence_id", ""),
             "Rank": item.get("rank", ""),
+            "Similarity": item.get("similarity", ""),
             "Source": item.get("source", "Unknown"),
             "Category": item.get("category", "Unknown"),
             "Title": item.get("title", "Untitled"),
@@ -108,12 +119,13 @@ def render_recommendations_tab():
     st.write(
         "This section generates evidence-based strategic recommendations from a dynamic CEO goal. "
         "The agent detects the goal type, selects tools, retrieves evidence, analyzes the evidence, "
-        "generates recommendations, validates them, and stores the run in memory."
+        "sends the evidence to the local LLM for final recommendation generation, validates the result, "
+        "and stores the run in memory."
     )
 
     user_goal = st.text_area(
         "Enter a strategic CEO goal",
-        placeholder="Example: What should BMW prioritize to strengthen its EV strategy?",
+        value=DEFAULT_RECOMMENDATION_QUERY,
         key="recommendation_user_goal",
         height=100
     )
@@ -128,27 +140,29 @@ def render_recommendations_tab():
             st.warning("Please enter a strategic CEO goal first.")
             return
 
-        with st.spinner("AI CEO Agent is generating an evidence-based strategic recommendation..."):
-            agent = StrategicAgent(top_k=5, use_llm=False)
+        with st.spinner("AI CEO Agent is retrieving evidence and generating a strategic recommendation..."):
+            agent = StrategicAgent(top_k=5, use_llm=True)
             result = agent.run(user_goal.strip())
+
             st.session_state["strategic_recommendation_result"] = result
             st.session_state["latest_agent_result"] = result
             st.session_state["latest_agent_result_source"] = "Strategic Recommendations"
 
     if "strategic_recommendation_result" not in st.session_state:
-        st.info("Enter a dynamic strategic goal to generate recommendations.")
+        st.info("A default strategic goal is already provided. You can run it or edit it first.")
         return
 
     result = st.session_state["strategic_recommendation_result"]
     trace = result.get("agent_trace", {})
     validation = result.get("validation", {})
+    memory = result.get("memory", {})
 
     st.divider()
 
     st.subheader("Strategic Goal")
     st.info(result.get("user_goal", ""))
 
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
 
     with col1:
         st.metric("Detected Goal Type", result.get("goal_type", "Unknown"))
@@ -162,19 +176,27 @@ def render_recommendations_tab():
     with col4:
         st.metric("Evidence Chunks", len(result.get("evidence", [])))
 
+    with col5:
+        st.metric("Generation Mode", result.get("generation_mode", "Unknown"))
+
     st.subheader("Selected Tools")
 
     selected_tools = trace.get("selected_tools", result.get("tools_used", []))
+
     if selected_tools:
-        st.dataframe(pd.DataFrame({"Selected Tools": selected_tools}), use_container_width=True)
+        st.dataframe(
+            pd.DataFrame({"Selected Tools": selected_tools}),
+            use_container_width=True
+        )
     else:
         st.info("No selected tools available.")
 
     st.subheader("Final Recommendation")
 
     answer = result.get("answer") or result.get("final_briefing", "")
+
     if answer:
-        st.write(answer)
+        st.markdown(answer)
     else:
         st.warning("No recommendation generated.")
 
@@ -225,6 +247,7 @@ def render_recommendations_tab():
         "No supporting evidence available."
     )
 
-    memory = result.get("memory", {})
     if memory.get("memory_saved"):
         st.success(memory.get("message", "Agent run saved in memory."))
+    else:
+        st.info("Memory status not available.")

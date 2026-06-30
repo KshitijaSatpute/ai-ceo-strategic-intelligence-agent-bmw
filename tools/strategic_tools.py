@@ -1,10 +1,7 @@
 import json
 import re
-import sqlite3
 from pathlib import Path
-from difflib import SequenceMatcher
 
-import pandas as pd
 import requests
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
@@ -13,11 +10,12 @@ from intelligence.strategic_analyzer import CEORecommendationEngine
 
 
 class StrategicTools:
-    def __init__(self, top_k=5, use_llm=False, ollama_model="qwen2.5:3b"):
+    def __init__(self, top_k=5, use_llm=True, ollama_model="qwen2.5:3b"):
         self.top_k = top_k
         self.use_llm = use_llm
         self.ollama_model = ollama_model
-        self.engine = CEORecommendationEngine(top_k=top_k, use_llm=use_llm)
+
+        self.engine = CEORecommendationEngine(top_k=top_k, use_llm=False)
         self.validator = AgentValidator()
         self.sentiment_analyzer = SentimentIntensityAnalyzer()
         self.db_path = Path(__file__).resolve().parents[1] / "data" / "ai_ceo.db"
@@ -39,22 +37,164 @@ class StrategicTools:
                 "category": item.get("category", "Unknown"),
                 "url": item.get("url", ""),
                 "text": item.get("text", item.get("chunk_text", "")),
-                "similarity": item.get("similarity", item.get("score", ""))
+                "similarity": item.get("similarity", item.get("score", 0.0))
             })
 
         return evidence_items
 
     def analyze_risks_tool(self, evidence_items):
-        return self._analyze_by_focus(evidence_items, focus="risk")
+        risk_themes = {
+            "Competition / Market Pressure": [
+                "competition", "competitor", "competitive", "rival", "tesla", "byd",
+                "mercedes", "audi", "volkswagen", "market share", "price war",
+                "pricing pressure"
+            ],
+            "Regulation / Policy Risk": [
+                "regulation", "regulatory", "emissions", "ban", "policy",
+                "compliance", "tariff", "law", "subsidy cut", "incentive cut"
+            ],
+            "Supply Chain / Production Risk": [
+                "supply chain", "shortage", "production delay", "supplier",
+                "raw material", "battery supply", "semiconductor", "factory",
+                "manufacturing", "delivery delay"
+            ],
+            "Demand / Adoption Risk": [
+                "weak demand", "slow demand", "slowdown", "sales decline",
+                "sales drop", "slump", "customer hesitation", "affordability",
+                "soft demand"
+            ],
+            "Technology / Execution Risk": [
+                "battery issue", "charging issue", "range anxiety", "software issue",
+                "recall", "delay", "technology risk", "execution risk",
+                "reliability", "technical problem"
+            ],
+            "Financial / Cost Pressure": [
+                "cost pressure", "margin pressure", "profit warning",
+                "earnings pressure", "price cut", "loss", "financial pressure",
+                "investment burden", "revenue decline"
+            ]
+        }
+
+        signals = self._extract_signals(
+            evidence_items=evidence_items,
+            theme_keywords=risk_themes,
+            signal_type="risk"
+        )
+
+        for signal in signals:
+            signal["category"] = signal.pop("theme")
+            signal["severity"] = self._level_from_score(signal["score"])
+
+        return signals
 
     def analyze_opportunities_tool(self, evidence_items):
-        return self._analyze_by_focus(evidence_items, focus="opportunity")
+        opportunity_themes = {
+            "Product / Innovation Opportunity": [
+                "new product", "launch", "platform", "innovation", "technology",
+                "software", "battery", "charging", "range", "next-generation",
+                "neue klasse", "new model", "product launch", "electric platform"
+            ],
+            "Market Growth Opportunity": [
+                "growth", "market expansion", "sales growth", "demand growth",
+                "customer demand", "global market", "new market", "increase",
+                "strong demand", "market opportunity"
+            ],
+            "Partnership / Ecosystem Opportunity": [
+                "partnership", "partner", "collaboration", "joint venture",
+                "alliance", "ecosystem", "supplier partnership", "charging partner"
+            ],
+            "Competitive Positioning Opportunity": [
+                "advantage", "differentiation", "premium", "leadership",
+                "market position", "competitive edge", "brand strength",
+                "luxury", "performance", "premium segment"
+            ],
+            "Regulation / Policy Opportunity": [
+                "subsidy", "incentive", "policy support", "tax credit",
+                "government support", "emissions target", "regulatory support"
+            ],
+            "Customer / Adoption Opportunity": [
+                "customer", "consumer adoption", "affordability", "user experience",
+                "charging convenience", "range improvement", "customer interest",
+                "adoption growth"
+            ]
+        }
+
+        signals = self._extract_signals(
+            evidence_items=evidence_items,
+            theme_keywords=opportunity_themes,
+            signal_type="opportunity"
+        )
+
+        for signal in signals:
+            signal["impact"] = self._level_from_score(signal["score"])
+
+        return signals
 
     def analyze_trends_tool(self, evidence_items):
-        return self._analyze_by_focus(evidence_items, focus="trend")
+        trend_themes = {
+            "EV Market Trend": [
+                "electric vehicle", "battery electric", "sales growth",
+                "market growth", "market slowdown", "adoption", "demand"
+            ],
+            "Battery / Charging Trend": [
+                "battery", "charging", "range", "fast charging",
+                "charging network", "battery technology"
+            ],
+            "Software / Digital Vehicle Trend": [
+                "software", "digital", "connected car", "operating system",
+                "infotainment", "autonomous", "driver assistance"
+            ],
+            "China / Global Market Trend": [
+                "china", "europe", "us market", "global", "new market",
+                "international", "market expansion"
+            ],
+            "Cost / Pricing Trend": [
+                "price", "cost", "margin", "affordability", "discount",
+                "price cut", "premium pricing"
+            ]
+        }
+
+        signals = self._extract_signals(
+            evidence_items=evidence_items,
+            theme_keywords=trend_themes,
+            signal_type="trend"
+        )
+
+        for signal in signals:
+            signal["type"] = signal.pop("theme")
+
+        return signals
 
     def analyze_competitors_tool(self, evidence_items):
-        return self._analyze_by_focus(evidence_items, focus="competitor")
+        competitor_themes = {
+            "Tesla Competitive Signal": [
+                "tesla", "model y", "model 3", "supercharger"
+            ],
+            "BYD Competitive Signal": [
+                "byd", "china ev", "chinese ev", "seal", "atto"
+            ],
+            "German Premium Competitor Signal": [
+                "mercedes", "audi", "volkswagen", "porsche"
+            ],
+            "US / Global Competitor Signal": [
+                "rivian", "lucid", "ford", "gm", "hyundai", "kia"
+            ],
+            "Price Competition Signal": [
+                "price war", "price cut", "discount", "pricing pressure",
+                "cheaper", "affordable"
+            ]
+        }
+
+        signals = self._extract_signals(
+            evidence_items=evidence_items,
+            theme_keywords=competitor_themes,
+            signal_type="competitor"
+        )
+
+        for signal in signals:
+            signal["category"] = signal.pop("theme")
+
+        return signals
 
     def sentiment_tool(self, evidence_items):
         combined_text = " ".join(
@@ -65,6 +205,9 @@ class StrategicTools:
             return {
                 "label": "Neutral",
                 "compound": 0.0,
+                "positive": 0.0,
+                "neutral": 1.0,
+                "negative": 0.0,
                 "reason": "No evidence text was available for sentiment analysis."
             }
 
@@ -87,52 +230,82 @@ class StrategicTools:
             "reason": "Sentiment is calculated from retrieved evidence using VADER."
         }
 
-    def generate_recommendation_tool(self, user_goal, goal_type, evidence_items, analysis_results, sentiment):
+    def generate_recommendation_tool(
+        self,
+        user_goal,
+        goal_type,
+        evidence_items,
+        analysis_results,
+        sentiment
+    ):
         risks = analysis_results.get("risks", [])
         opportunities = analysis_results.get("opportunities", [])
         trends = analysis_results.get("trends", [])
         competitors = analysis_results.get("competitors", [])
 
-        actions = []
-
-        if goal_type == "risk_analysis":
-            actions.append("Prioritize mitigation actions for the strongest evidence-supported risks.")
-        elif goal_type == "opportunity_analysis":
-            actions.append("Prioritize investment in the strongest evidence-supported opportunities.")
-        elif goal_type == "trend_analysis":
-            actions.append("Monitor the strongest evidence-supported industry and technology trends.")
-        elif goal_type == "competitor_analysis":
-            actions.append("Respond to competitor movements using evidence-supported market signals.")
-        else:
-            actions.append("Balance EV growth opportunities with strategic risk mitigation.")
-
-        if opportunities:
-            actions.append("Use opportunity signals to guide product, market, or technology priorities.")
-
-        if risks:
-            actions.append("Create management actions for the most important risk signals.")
-
-        if trends:
-            actions.append("Track trend signals continuously and update strategy as new evidence appears.")
-
-        priority = self._decide_priority(goal_type, risks, opportunities, trends, competitors)
-        confidence = self._decide_confidence(evidence_items, analysis_results)
-
-        final_briefing = self._build_ceo_briefing(
-            user_goal=user_goal,
+        actions = self._build_actions(
             goal_type=goal_type,
             risks=risks,
             opportunities=opportunities,
             trends=trends,
+            competitors=competitors
+        )
+
+        priority = self._decide_priority(
+            goal_type=goal_type,
+            risks=risks,
+            opportunities=opportunities,
+            trends=trends,
+            competitors=competitors
+        )
+
+        confidence = self._decide_confidence(
+            evidence_items=evidence_items,
+            risks=risks,
+            opportunities=opportunities,
+            trends=trends,
+            competitors=competitors
+        )
+
+        prompt = self._build_llm_prompt(
+            user_goal=user_goal,
+            goal_type=goal_type,
+            evidence_items=evidence_items,
+            risks=risks,
+            opportunities=opportunities,
+            trends=trends,
             competitors=competitors,
-            actions=actions,
             sentiment=sentiment,
             priority=priority,
             confidence=confidence
         )
 
+        llm_briefing = ""
+
+        if self.use_llm:
+            llm_briefing = self._call_ollama(prompt)
+
+        if llm_briefing:
+            final_briefing = llm_briefing
+            generation_mode = "retrieval_augmented_local_llm"
+        else:
+            final_briefing = self._build_rule_based_briefing(
+                user_goal=user_goal,
+                goal_type=goal_type,
+                risks=risks,
+                opportunities=opportunities,
+                trends=trends,
+                competitors=competitors,
+                actions=actions,
+                sentiment=sentiment,
+                priority=priority,
+                confidence=confidence
+            )
+            generation_mode = "rule_based_fallback"
+
         used_evidence_ids = [
-            item["evidence_id"] for item in evidence_items[:3]
+            item["evidence_id"]
+            for item in evidence_items[:3]
             if "evidence_id" in item
         ]
 
@@ -153,254 +326,122 @@ class StrategicTools:
             "sentiment": sentiment,
             "evidence": evidence_items,
             "used_evidence_ids": used_evidence_ids,
-            "generation_mode": "controlled_dynamic_agentic_rag"
+            "generation_mode": generation_mode
         }
 
     def validate_recommendation_tool(self, result):
         return self.validator.validate(result)
 
-    def overall_risk_monitor_tool(self, max_articles=60):
-        articles = self._load_full_articles(max_articles=max_articles)
-
-        if not articles:
-            return {
-                "items": [],
-                "evidence": [],
-                "articles_analyzed": 0,
-                "error": "No full articles found in the documents table."
-            }
-
-        items = self._extract_overall_signals_with_llm(
-            signal_type="risk",
-            articles=articles
-        )
-
-        normalized_items = self._normalize_overall_items(items, signal_type="risk")
-        evidence_rows = self._build_overall_evidence_rows(normalized_items, signal_type="Risk")
-
-        return {
-            "items": normalized_items,
-            "evidence": evidence_rows,
-            "articles_analyzed": len(articles),
-            "error": "" if normalized_items else "No risk signals were generated. Check if Ollama is running."
-        }
-
-    def overall_opportunity_monitor_tool(self, max_articles=60):
-        articles = self._load_full_articles(max_articles=max_articles)
-
-        if not articles:
-            return {
-                "items": [],
-                "evidence": [],
-                "articles_analyzed": 0,
-                "error": "No full articles found in the documents table."
-            }
-
-        items = self._extract_overall_signals_with_llm(
-            signal_type="opportunity",
-            articles=articles
-        )
-
-        normalized_items = self._normalize_overall_items(items, signal_type="opportunity")
-        evidence_rows = self._build_overall_evidence_rows(normalized_items, signal_type="Opportunity")
-
-        return {
-            "items": normalized_items,
-            "evidence": evidence_rows,
-            "articles_analyzed": len(articles),
-            "error": "" if normalized_items else "No opportunity signals were generated. Check if Ollama is running."
-        }
-
-    def _extract_overall_signals_with_llm(self, signal_type, articles):
-        batch_size = 5
-        batch_items = []
-
-        for start in range(0, len(articles), batch_size):
-            batch = articles[start:start + batch_size]
-
-            prompt = self._build_batch_extraction_prompt(
-                signal_type=signal_type,
-                articles=batch,
-                start_index=start
-            )
-
-            parsed = self._call_ollama_json(prompt)
-            items = parsed.get("items", [])
-
-            if isinstance(items, list):
-                batch_items.extend(items)
-
-        if not batch_items:
-            return []
-
-        merge_prompt = self._build_merge_prompt(
-            signal_type=signal_type,
-            items=batch_items
-        )
-
-        merged = self._call_ollama_json(merge_prompt)
-        merged_items = merged.get("items", [])
-
-        if isinstance(merged_items, list) and merged_items:
-            return merged_items
-
-        return batch_items
-
-    def _build_batch_extraction_prompt(self, signal_type, articles, start_index=0):
-        article_blocks = []
-
-        for local_index, article in enumerate(articles, start=1):
-            global_index = start_index + local_index
-            text = self._shorten_text(article.get("text", ""), max_chars=1800)
-
-            article_blocks.append(
-                f"""
-Article {global_index}
-Title: {article.get("title", "Untitled")}
-Source: {article.get("source", "Unknown")}
-Category: {article.get("category", "Unknown")}
-URL: {article.get("url", "")}
-Article Text:
-{text}
-"""
-            )
-
-        article_text = "\n".join(article_blocks)
-
-        if signal_type == "risk":
-            task = "Identify strategic risks for BMW's EV strategy from these articles."
-            schema = """
-{
-  "items": [
-    {
-      "title": "short risk title",
-      "category": "risk category",
-      "evidence_reason": "short reason based only on article evidence",
-      "supporting_source": "source name",
-      "supporting_title": "article title",
-      "evidence_snippet": "short evidence snippet from the article"
-    }
-  ]
-}
-"""
-        else:
-            task = "Identify strategic opportunities for BMW's EV strategy from these articles."
-            schema = """
-{
-  "items": [
-    {
-      "title": "short opportunity title",
-      "evidence_reason": "short reason based only on article evidence",
-      "supporting_source": "source name",
-      "supporting_title": "article title",
-      "evidence_snippet": "short evidence snippet from the article"
-    }
-  ]
-}
-"""
+    def _build_llm_prompt(
+        self,
+        user_goal,
+        goal_type,
+        evidence_items,
+        risks,
+        opportunities,
+        trends,
+        competitors,
+        sentiment,
+        priority,
+        confidence
+    ):
+        evidence_text = self._format_evidence_for_prompt(evidence_items)
 
         prompt = f"""
-You are a strategic intelligence extraction tool.
+You are an AI CEO Strategic Intelligence Agent for BMW EV strategy.
 
-Task:
-{task}
+Your task is to generate a concise CEO-level executive briefing using only the provided evidence.
+
+User goal:
+{user_goal}
+
+Detected goal type:
+{goal_type}
+
+Priority:
+{priority}
+
+Confidence:
+{confidence}
+
+Evidence sentiment:
+{sentiment.get("label", "Unknown")}
+
+Retrieved evidence:
+{evidence_text}
+
+Extracted risk signals:
+{json.dumps(risks, indent=2)}
+
+Extracted opportunity signals:
+{json.dumps(opportunities, indent=2)}
+
+Extracted trend signals:
+{json.dumps(trends, indent=2)}
+
+Extracted competitor signals:
+{json.dumps(competitors, indent=2)}
 
 Rules:
-- Use the provided articles as the only evidence source.
-- Do not use predefined risk themes.
-- Do not use predefined opportunity themes.
-- Do not use keyword lists.
-- Decide the signals from article meaning and context.
+- Use only the retrieved evidence and extracted signals.
 - Do not invent facts.
-- Return only valid JSON.
-- Extract 1 to 3 strongest items from this batch.
-- Do not assign confidence score.
-- Do not assign severity or impact level.
+- Do not mention unsupported claims.
+- Write like a CEO strategy briefing, not like debug output.
+- Give a specific recommendation for BMW.
+- Mention evidence IDs when supporting important points.
+- Keep the answer clear and professional.
 
-JSON schema:
-{schema}
+Required structure:
 
-Articles:
-{article_text}
+Executive Recommendation:
+Write 2 to 3 sentences with the main strategic recommendation.
+
+Why this matters:
+Explain the business reason in 2 to 3 sentences.
+
+Key Evidence:
+List 3 to 5 evidence-supported points with evidence IDs.
+
+Main Risks:
+List the strongest risks.
+
+Main Opportunities:
+List the strongest opportunities.
+
+Recommended Next Actions:
+List 3 concrete actions BMW should take.
+
+Final Priority:
+State priority and confidence.
 """
-        return prompt
+        return prompt.strip()
 
-    def _build_merge_prompt(self, signal_type, items):
-        if signal_type == "risk":
-            task = "Merge the extracted batch-level risks into 4 to 6 final BMW EV strategic risks."
-            schema = """
-{
-  "items": [
-    {
-      "title": "final risk title",
-      "category": "risk category",
-      "evidence_reason": "combined evidence-based reason",
-      "supporting_source": "source name",
-      "supporting_title": "article title",
-      "evidence_snippet": "short evidence snippet"
-    }
-  ]
-}
+    def _format_evidence_for_prompt(self, evidence_items):
+        lines = []
+
+        for item in evidence_items:
+            evidence_id = item.get("evidence_id", "")
+            title = item.get("title", "Untitled")
+            source = item.get("source", "Unknown")
+            category = item.get("category", "Unknown")
+            similarity = item.get("similarity", "")
+            text = self._clean_text(item.get("text", ""))
+
+            if len(text) > 900:
+                text = text[:900] + "..."
+
+            lines.append(
+                f"""
+Evidence ID: {evidence_id}
+Title: {title}
+Source: {source}
+Category: {category}
+Similarity: {similarity}
+Text: {text}
 """
-        else:
-            task = "Merge the extracted batch-level opportunities into 4 to 6 final BMW EV strategic opportunities."
-            schema = """
-{
-  "items": [
-    {
-      "title": "final opportunity title",
-      "evidence_reason": "combined evidence-based reason",
-      "supporting_source": "source name",
-      "supporting_title": "article title",
-      "evidence_snippet": "short evidence snippet"
-    }
-  ]
-}
-"""
+            )
 
-        prompt = f"""
-You are a strategic intelligence consolidation tool.
-
-Task:
-{task}
-
-Rules:
-- Merge duplicates.
-- Keep only the strongest evidence-supported signals.
-- Do not invent new facts.
-- Use only the extracted items below.
-- Return only valid JSON.
-- Do not assign confidence score.
-- Do not assign severity or impact level.
-
-JSON schema:
-{schema}
-
-Extracted items:
-{json.dumps(items, indent=2)}
-"""
-        return prompt
-
-    def _call_ollama_json(self, prompt):
-        response_text = self._call_ollama(prompt)
-
-        if not response_text:
-            return {}
-
-        cleaned = response_text.strip()
-        cleaned = cleaned.replace("```json", "")
-        cleaned = cleaned.replace("```", "")
-        cleaned = cleaned.strip()
-
-        match = re.search(r"\{.*\}", cleaned, re.DOTALL)
-
-        if match:
-            cleaned = match.group(0)
-
-        try:
-            return json.loads(cleaned)
-        except Exception:
-            return {}
+        return "\n".join(lines)
 
     def _call_ollama(self, prompt):
         try:
@@ -410,9 +451,8 @@ Extracted items:
                     "model": self.ollama_model,
                     "prompt": prompt,
                     "stream": False,
-                    "format": "json",
                     "options": {
-                        "temperature": 0.0
+                        "temperature": 0.2
                     }
                 },
                 timeout=180
@@ -427,347 +467,165 @@ Extracted items:
         except Exception:
             return ""
 
-    def _normalize_overall_items(self, items, signal_type):
-        rows = []
-
-        if not isinstance(items, list):
-            return rows
-
-        for item in items:
-            if not isinstance(item, dict):
-                continue
-
-            title = str(item.get("title", "")).strip()
-
-            if not title:
-                continue
-
-            evidence_reason = str(item.get("evidence_reason", "")).strip()
-            supporting_source = str(item.get("supporting_source", "")).strip()
-            supporting_title = str(item.get("supporting_title", "")).strip()
-            evidence_snippet = str(item.get("evidence_snippet", "")).strip()
-
-            support_strength = self._get_support_strength(
-                evidence_reason=evidence_reason,
-                supporting_source=supporting_source,
-                supporting_title=supporting_title,
-                evidence_snippet=evidence_snippet
-            )
-
-            if signal_type == "risk":
-                rows.append({
-                    "Risk Title": title,
-                    "Risk Category": str(item.get("category", "Strategic Risk")).strip(),
-                    "Severity Level": "",
-                    "Confidence Score": 0.0,
-                    "Evidence Reason": evidence_reason,
-                    "Supporting Source": supporting_source,
-                    "Supporting Article": supporting_title,
-                    "Evidence Snippet": evidence_snippet,
-                    "_Support Strength": support_strength
-                })
-
-            else:
-                rows.append({
-                    "Opportunity Title": title,
-                    "Impact Level": "",
-                    "Confidence Score": 0.0,
-                    "Evidence Reason": evidence_reason,
-                    "Supporting Source": supporting_source,
-                    "Supporting Article": supporting_title,
-                    "Evidence Snippet": evidence_snippet,
-                    "_Support Strength": support_strength
-                })
-
-        rows = self._remove_duplicate_overall_items(rows, signal_type)
-        rows = self._assign_relative_scores(rows, signal_type)
-
-        return rows[:6]
-
-    def _get_support_strength(
-        self,
-        evidence_reason,
-        supporting_source,
-        supporting_title,
-        evidence_snippet
-    ):
-        score = 0
-
-        if supporting_source:
-            score += 1
-
-        if supporting_title:
-            score += 1
-
-        if len(evidence_reason) >= 80:
-            score += 1
-
-        if len(evidence_reason) >= 160:
-            score += 1
-
-        if len(evidence_snippet) >= 80:
-            score += 1
-
-        if len(evidence_snippet) >= 160:
-            score += 1
-
-        return score
-
-    def _remove_duplicate_overall_items(self, rows, signal_type):
-        title_key = "Risk Title" if signal_type == "risk" else "Opportunity Title"
-        unique_rows = []
-
-        for row in rows:
-            title = row.get(title_key, "")
-            duplicate_found = False
-
-            for existing in unique_rows:
-                existing_title = existing.get(title_key, "")
-
-                similarity = SequenceMatcher(
-                    None,
-                    title.lower(),
-                    existing_title.lower()
-                ).ratio()
-
-                if similarity > 0.82:
-                    duplicate_found = True
-
-                    current_strength = row.get("_Support Strength", 0)
-                    existing_strength = existing.get("_Support Strength", 0)
-
-                    if current_strength > existing_strength:
-                        existing.update(row)
-
-                    break
-
-            if not duplicate_found:
-                unique_rows.append(row)
-
-        unique_rows = sorted(
-            unique_rows,
-            key=lambda item: item.get("_Support Strength", 0),
-            reverse=True
-        )
-
-        return unique_rows
-
-    def _assign_relative_scores(self, rows, signal_type):
-        if not rows:
-            return rows
-
-        cleaned_rows = []
-
-        for index, row in enumerate(rows):
-            support_strength = row.get("_Support Strength", 0)
-
-            base_score = 0.88 - (index * 0.06)
-            support_bonus = min(support_strength * 0.005, 0.02)
-
-            confidence = base_score + support_bonus
-            confidence = max(0.58, min(confidence, 0.90))
-            confidence = round(confidence, 2)
-
-            row["Confidence Score"] = confidence
-
-            if signal_type == "risk":
-                if confidence >= 0.84:
-                    row["Severity Level"] = "High"
-                elif confidence >= 0.70:
-                    row["Severity Level"] = "Medium"
-                else:
-                    row["Severity Level"] = "Low"
-            else:
-                if confidence >= 0.84:
-                    row["Impact Level"] = "High"
-                elif confidence >= 0.70:
-                    row["Impact Level"] = "Medium"
-                else:
-                    row["Impact Level"] = "Low"
-
-            if "_Support Strength" in row:
-                del row["_Support Strength"]
-
-            cleaned_rows.append(row)
-
-        return cleaned_rows
-
-    def _build_overall_evidence_rows(self, items, signal_type):
-        rows = []
-
-        if signal_type == "Risk":
-            title_key = "Risk Title"
-        else:
-            title_key = "Opportunity Title"
-
-        for item in items:
-            rows.append({
-                f"{signal_type} Signal": item.get(title_key, ""),
-                "Evidence Reason": item.get("Evidence Reason", ""),
-                "Supporting Source": item.get("Supporting Source", ""),
-                "Supporting Article": item.get("Supporting Article", ""),
-                "Evidence Snippet": item.get("Evidence Snippet", ""),
-                "Confidence Score": item.get("Confidence Score", "")
-            })
-
-        return rows
-
-    def _load_full_articles(self, max_articles=60):
-        if not self.db_path.exists():
-            return []
-
-        conn = sqlite3.connect(self.db_path)
-
-        try:
-            columns = self._get_columns(conn, "documents")
-
-            if not columns:
-                conn.close()
-                return []
-
-            text_column = self._choose_column(
-                columns,
-                ["clean_text", "content", "text", "article_text", "raw_text", "summary"]
-            )
-            title_column = self._choose_column(columns, ["title", "headline", "name"])
-            source_column = self._choose_column(columns, ["source", "publisher", "source_name"])
-            category_column = self._choose_column(columns, ["category", "source_type", "topic"])
-            url_column = self._choose_column(columns, ["url", "link"])
-
-            if text_column is None:
-                conn.close()
-                return []
-
-            selected_columns = [text_column]
-
-            for column in [title_column, source_column, category_column, url_column]:
-                if column and column not in selected_columns:
-                    selected_columns.append(column)
-
-            query = f"""
-                SELECT {", ".join(selected_columns)}
-                FROM documents
-                WHERE {text_column} IS NOT NULL
-            """
-
-            df = pd.read_sql_query(query, conn)
-            conn.close()
-
-            rename_map = {text_column: "text"}
-
-            if title_column:
-                rename_map[title_column] = "title"
-
-            if source_column:
-                rename_map[source_column] = "source"
-
-            if category_column:
-                rename_map[category_column] = "category"
-
-            if url_column:
-                rename_map[url_column] = "url"
-
-            df = df.rename(columns=rename_map)
-
-            if "title" not in df.columns:
-                df["title"] = "Untitled"
-
-            if "source" not in df.columns:
-                df["source"] = "Unknown"
-
-            if "category" not in df.columns:
-                df["category"] = "Unknown"
-
-            if "url" not in df.columns:
-                df["url"] = ""
-
-            df["text"] = df["text"].fillna("").astype(str)
-            df = df[df["text"].str.strip() != ""]
-            df["text_length"] = df["text"].str.len()
-            df = df.sort_values(by="text_length", ascending=False)
-
-            if len(df) > max_articles:
-                df = df.head(max_articles)
-
-            articles = []
-
-            for _, row in df.iterrows():
-                articles.append({
-                    "title": row["title"],
-                    "source": row["source"],
-                    "category": row["category"],
-                    "url": row["url"],
-                    "text": row["text"]
-                })
-
-            return articles
-
-        except Exception:
-            conn.close()
-            return []
-
-    def _get_columns(self, conn, table_name):
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            SELECT name
-            FROM sqlite_master
-            WHERE type='table' AND name=?
-        """, (table_name,))
-
-        if cursor.fetchone() is None:
-            return []
-
-        cursor.execute(f"PRAGMA table_info({table_name})")
-        rows = cursor.fetchall()
-
-        return [row[1] for row in rows]
-
-    def _choose_column(self, columns, possible_names):
-        for name in possible_names:
-            if name in columns:
-                return name
-
-        return None
-
-    def _analyze_by_focus(self, evidence_items, focus):
-        findings = []
+    def _extract_signals(self, evidence_items, theme_keywords, signal_type, max_items=3):
+        signals = []
 
         for item in evidence_items:
-            text = item.get("text", "")
-            title = item.get("title", "Untitled")
+            text = self._clean_text(item.get("text", ""))
+            title = self._clean_text(item.get("title", "Untitled"))
             source = item.get("source", "Unknown")
             evidence_id = item.get("evidence_id", "")
+            combined_text = f"{title} {text}".lower()
 
-            if not text.strip():
+            if not text:
                 continue
 
-            finding = {
-                "title": f"{focus.title()} signal from retrieved evidence",
-                "reason": f"This signal is derived from retrieved evidence: {title}",
-                "source": source,
-                "evidence_id": evidence_id
-            }
+            for theme, keywords in theme_keywords.items():
+                matched_keywords = [
+                    keyword
+                    for keyword in keywords
+                    if self._keyword_in_text(keyword, combined_text)
+                ]
 
-            if focus == "risk":
-                finding["category"] = "Strategic Risk"
-                finding["severity"] = "Medium"
+                if not matched_keywords:
+                    continue
 
-            elif focus == "opportunity":
-                finding["impact"] = "Medium"
+                phrase_hits = sum(1 for keyword in matched_keywords if " " in keyword)
+                title_hits = sum(
+                    1 for keyword in matched_keywords
+                    if self._keyword_in_text(keyword, title.lower())
+                )
 
-            elif focus == "trend":
-                finding["type"] = "Market / Technology Trend"
+                score = (
+                    len(matched_keywords) * 1.0
+                    + phrase_hits * 0.8
+                    + title_hits * 0.6
+                )
 
-            elif focus == "competitor":
-                finding["category"] = "Competitive Signal"
+                signals.append({
+                    "title": theme,
+                    "theme": theme,
+                    "reason": (
+                        f"Matched {signal_type} indicators in retrieved evidence: "
+                        f"{', '.join(matched_keywords)}."
+                    ),
+                    "matched_keywords": ", ".join(matched_keywords),
+                    "evidence_preview": self._build_preview(text, matched_keywords),
+                    "source": source,
+                    "evidence_id": evidence_id,
+                    "score": round(score, 2)
+                })
 
-            findings.append(finding)
+        signals = self._deduplicate_signals(signals)
+        signals = sorted(signals, key=lambda item: item["score"], reverse=True)
 
-        return findings[:3]
+        return signals[:max_items]
+
+    def _deduplicate_signals(self, signals):
+        unique = {}
+
+        for signal in signals:
+            key = signal.get("theme", "")
+
+            if key not in unique:
+                unique[key] = signal
+            elif signal["score"] > unique[key]["score"]:
+                unique[key] = signal
+
+        return list(unique.values())
+
+    def _keyword_in_text(self, keyword, text):
+        keyword = keyword.lower().strip()
+        text = text.lower()
+
+        if " " in keyword:
+            return keyword in text
+
+        pattern = r"\b" + re.escape(keyword) + r"\b"
+        return re.search(pattern, text) is not None
+
+    def _build_preview(self, text, matched_keywords, max_length=260):
+        text = self._clean_text(text)
+
+        if not text:
+            return ""
+
+        first_position = -1
+        text_lower = text.lower()
+
+        for keyword in matched_keywords:
+            position = text_lower.find(keyword.lower())
+
+            if position != -1:
+                first_position = position
+                break
+
+        if first_position == -1:
+            return text[:max_length]
+
+        start = max(0, first_position - 80)
+        end = min(len(text), first_position + max_length)
+
+        preview = text[start:end].strip()
+
+        if start > 0:
+            preview = "..." + preview
+
+        if end < len(text):
+            preview = preview + "..."
+
+        return preview
+
+    def _level_from_score(self, score):
+        if score >= 4.0:
+            return "High"
+        if score >= 2.0:
+            return "Medium"
+        return "Low"
+
+    def _build_actions(self, goal_type, risks, opportunities, trends, competitors):
+        actions = []
+
+        if goal_type == "risk_analysis":
+            actions.append("Prioritize mitigation for the strongest evidence-supported risks.")
+        elif goal_type == "opportunity_analysis":
+            actions.append("Prioritize investment in the strongest evidence-supported opportunities.")
+        elif goal_type == "trend_analysis":
+            actions.append("Track the strongest market and technology trends before changing strategy.")
+        elif goal_type == "competitor_analysis":
+            actions.append("Respond to competitor signals using product, pricing, and market positioning actions.")
+        else:
+            actions.append("Balance EV growth opportunities with risk mitigation before making a strategic decision.")
+
+        if opportunities:
+            top_opportunity = opportunities[0]
+            actions.append(
+                f"Use the opportunity signal '{top_opportunity.get('title', 'Opportunity')}' "
+                "to guide product, market, or technology priorities."
+            )
+
+        if risks:
+            top_risk = risks[0]
+            actions.append(
+                f"Prepare mitigation for the risk signal '{top_risk.get('title', 'Risk')}'."
+            )
+
+        if trends:
+            top_trend = trends[0]
+            actions.append(
+                f"Monitor the trend '{top_trend.get('title', 'Trend')}' as new evidence is collected."
+            )
+
+        if competitors:
+            top_competitor = competitors[0]
+            actions.append(
+                f"Track competitor movement related to '{top_competitor.get('title', 'Competitor signal')}'."
+            )
+
+        return actions
 
     def _decide_priority(self, goal_type, risks, opportunities, trends, competitors):
-        if goal_type in ["risk_analysis", "competitor_analysis"] and risks:
+        if goal_type in ["risk_analysis", "competitor_analysis"] and (risks or competitors):
             return "High"
 
         if goal_type == "opportunity_analysis" and opportunities:
@@ -781,24 +639,19 @@ Extracted items:
 
         return "Medium"
 
-    def _decide_confidence(self, evidence_items, analysis_results):
+    def _decide_confidence(self, evidence_items, risks, opportunities, trends, competitors):
         evidence_count = len(evidence_items)
-        signal_count = (
-            len(analysis_results.get("risks", []))
-            + len(analysis_results.get("opportunities", []))
-            + len(analysis_results.get("trends", []))
-            + len(analysis_results.get("competitors", []))
-        )
+        signal_count = len(risks) + len(opportunities) + len(trends) + len(competitors)
 
-        if evidence_count >= 5 and signal_count >= 3:
+        if evidence_count >= 5 and signal_count >= 4:
             return "High"
 
-        if evidence_count >= 3:
+        if evidence_count >= 3 and signal_count >= 2:
             return "Medium"
 
         return "Low"
 
-    def _build_ceo_briefing(
+    def _build_rule_based_briefing(
         self,
         user_goal,
         goal_type,
@@ -822,39 +675,51 @@ Extracted items:
         lines.append("")
         lines.append("Why this matters:")
         lines.append(
-            "The recommendation is based on retrieved evidence from the knowledge repository, "
-            "not only on the language model's internal knowledge."
+            "The recommendation is grounded in retrieved evidence from the repository. "
+            "The tools extract risk, opportunity, trend, and competitor signals from retrieved chunks."
         )
         lines.append("")
 
         lines.append("Risk Signals:")
         if risks:
             for risk in risks:
-                lines.append(f"- {risk.get('title', 'Risk')}: {risk.get('reason', '')}")
+                lines.append(
+                    f"- {risk.get('title', 'Risk')}: {risk.get('reason', '')} "
+                    f"[Evidence: {risk.get('evidence_id', '')}]"
+                )
         else:
-            lines.append("- No major risk signal was selected for this goal type.")
+            lines.append("- No strong risk signal was found in the retrieved evidence.")
 
         lines.append("")
         lines.append("Opportunity Signals:")
         if opportunities:
             for opportunity in opportunities:
-                lines.append(f"- {opportunity.get('title', 'Opportunity')}: {opportunity.get('reason', '')}")
+                lines.append(
+                    f"- {opportunity.get('title', 'Opportunity')}: {opportunity.get('reason', '')} "
+                    f"[Evidence: {opportunity.get('evidence_id', '')}]"
+                )
         else:
-            lines.append("- No major opportunity signal was selected for this goal type.")
+            lines.append("- No strong opportunity signal was found in the retrieved evidence.")
 
         lines.append("")
         lines.append("Trend Signals:")
         if trends:
             for trend in trends:
-                lines.append(f"- {trend.get('title', 'Trend')}: {trend.get('reason', '')}")
+                lines.append(
+                    f"- {trend.get('title', 'Trend')}: {trend.get('reason', '')} "
+                    f"[Evidence: {trend.get('evidence_id', '')}]"
+                )
         else:
-            lines.append("- No major trend signal was extracted from the retrieved evidence.")
+            lines.append("- No strong trend signal was found in the retrieved evidence.")
 
         if competitors:
             lines.append("")
             lines.append("Competitive Signals:")
             for competitor in competitors:
-                lines.append(f"- {competitor.get('title', 'Competitive signal')}: {competitor.get('reason', '')}")
+                lines.append(
+                    f"- {competitor.get('title', 'Competitive signal')}: {competitor.get('reason', '')} "
+                    f"[Evidence: {competitor.get('evidence_id', '')}]"
+                )
 
         lines.append("")
         lines.append("Recommended Actions:")
@@ -868,23 +733,35 @@ Extracted items:
 
         return "\n".join(lines)
 
-    def _shorten_text(self, text, max_chars=1800):
-        text = str(text)
-        text = re.sub(r"\s+", " ", text).strip()
-
-        if len(text) <= max_chars:
-            return text
-
-        return text[:max_chars] + "..."
+    def _clean_text(self, text):
+        text = "" if text is None else str(text)
+        text = re.sub(r"\s+", " ", text)
+        return text.strip()
 
 
 if __name__ == "__main__":
-    tools = StrategicTools(top_k=3, use_llm=False)
+    tools = StrategicTools(top_k=5, use_llm=True)
 
-    print("Testing overall risk monitor...")
-    risk_result = tools.overall_risk_monitor_tool(max_articles=10)
-    print("Risks:", len(risk_result.get("items", [])))
+    goal = "What should BMW do next in its EV strategy?"
 
-    print("Testing overall opportunity monitor...")
-    opportunity_result = tools.overall_opportunity_monitor_tool(max_articles=10)
-    print("Opportunities:", len(opportunity_result.get("items", [])))
+    evidence = tools.retrieve_evidence_tool(goal)
+
+    analysis = {
+        "risks": tools.analyze_risks_tool(evidence),
+        "opportunities": tools.analyze_opportunities_tool(evidence),
+        "trends": tools.analyze_trends_tool(evidence),
+        "competitors": tools.analyze_competitors_tool(evidence)
+    }
+
+    sentiment = tools.sentiment_tool(evidence)
+
+    result = tools.generate_recommendation_tool(
+        user_goal=goal,
+        goal_type="strategic_decision",
+        evidence_items=evidence,
+        analysis_results=analysis,
+        sentiment=sentiment
+    )
+
+    print(result["final_briefing"])
+    print("Generation mode:", result["generation_mode"])

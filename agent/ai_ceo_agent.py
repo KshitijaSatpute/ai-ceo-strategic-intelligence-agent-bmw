@@ -6,7 +6,7 @@ from tools.strategic_tools import StrategicTools
 class StrategicAgent:
     def __init__(self, top_k=5, use_llm=False):
         self.planner = AgentPlanner()
-        self.tools = StrategicTools(top_k=top_k, use_llm=use_llm)
+        self.tools = StrategicTools(top_k=top_k, use_llm=True)
         self.memory = AgentMemory()
 
     def run(self, user_goal):
