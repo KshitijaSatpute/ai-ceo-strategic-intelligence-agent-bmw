@@ -140,6 +140,7 @@ class AgentPlanner:
                 "analyze_competitors_tool",
                 "analyze_risks_tool"
             ])
+            
 
         else:
             tools.extend([
